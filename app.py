@@ -218,7 +218,8 @@ def download_selected():
             if os.path.isfile(file_path) and file.lower().endswith('.md'):
                 zf.write(file_path, arcname=file)
     memory_file.seek(0)
-    return send_file(memory_file, attachment_filename='selected_files.zip', as_attachment=True)
+    return send_file(memory_file, download_name='selected_files.zip', as_attachment=True)
+
 
 @app.route('/delete_selected', methods=['POST'])
 def delete_selected():
