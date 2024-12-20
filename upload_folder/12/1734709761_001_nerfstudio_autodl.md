@@ -1,0 +1,12 @@
+# Cursor IDE
+
+
+## Install
+```
+
+```
+
+
+
+
+

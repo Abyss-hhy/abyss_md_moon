@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 import zipfile
 import io
+import re
 
 app = Flask(__name__)
 app.secret_key = 'some_secret_key'  # 用于flash消息，可自行修改
@@ -32,6 +33,11 @@ def save_metadata(data):
 def format_timestamp(ts):
     return datetime.fromtimestamp(int(ts)).strftime('%Y-%m-%d %H:%M:%S')
 
+def is_valid_name(name):
+    # 不允许中文，仅限字母、数字、下划线、点、横杠
+    pattern = re.compile(r'^[A-Za-z0-9._-]+$')
+    return bool(pattern.match(name))
+
 @app.route('/')
 def index():
     current_dir = request.args.get('dir', '')
@@ -53,6 +59,9 @@ def index():
     for item in items:
         full_path = os.path.join(browse_path, item)
         if os.path.isdir(full_path):
+            if search_keyword:
+                if search_keyword.lower() not in item.lower():
+                    continue
             folders.append(item)
         else:
             if item.lower().endswith('.md'):
@@ -75,7 +84,7 @@ def index():
                     'owner': owner
                 })
 
-    # 排序
+    # 排序文件
     def sort_key(f):
         if sort_by == 'name':
             return f['original_name'].lower()
@@ -93,11 +102,11 @@ def index():
         parts = current_dir.strip('/').split('/')
         parent_dir = '/'.join(parts[:-1])
 
-    # 选中文件逻辑
+    # 文件内容查看逻辑
     selected_file_content = ''
     selected_file_owner = 'shared'
     selected_file_original_name = ''
-    need_auth_to_view = False  # 标记是否需要输入用户名才能查看
+    need_auth_to_view = False
     if selected:
         selected_file_info = next((f for f in files if f['name'] == selected), None)
         if selected_file_info:
@@ -106,17 +115,14 @@ def index():
             selected_file_original_name = selected_file_info['original_name']
 
             if selected_file_owner != 'shared':
-                # 是个人文件，需要auth_user匹配
+                # 个人文件需用户名匹配
                 if auth_user == selected_file_owner:
-                    # 用户名匹配，显示内容
                     if os.path.exists(selected_full_path):
                         with open(selected_full_path, 'r', encoding='utf-8') as f:
                             selected_file_content = f.read()
                 else:
-                    # 用户名不匹配或者未提供
                     need_auth_to_view = True
             else:
-                # 共享文件，无需用户名
                 if os.path.exists(selected_full_path):
                     with open(selected_full_path, 'r', encoding='utf-8') as f:
                         selected_file_content = f.read()
@@ -187,7 +193,6 @@ def download_selected():
         flash("未选择任何文件进行下载。")
         return redirect(url_for('index', dir=dir_path))
 
-    # 创建内存中的ZIP文件
     memory_file = io.BytesIO()
     with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
         for file in selected_files:
@@ -214,7 +219,7 @@ def delete_selected():
         file_owner = file_meta.get('owner', 'shared')
         if file_owner != 'shared' and owner_user != file_owner:
             flash(f"文件 '{file_meta.get('original_name', file)}' 的用户名不匹配，无法删除。")
-            continue  # 跳过未通过验证的文件
+            continue
 
         file_path = os.path.join(UPLOAD_FOLDER, dir_path, file)
         if os.path.exists(file_path) and os.path.isfile(file_path):
@@ -254,7 +259,7 @@ def move_selected():
 
         if file_owner != 'shared':
             flash(f"文件 '{file_meta.get('original_name', file)}' 是个人文件，无法批量移动。")
-            continue  # 跳过个人文件的批量移动
+            continue
 
         if os.path.exists(file_path) and os.path.isfile(file_path):
             os.rename(file_path, dest_path)
@@ -274,7 +279,6 @@ def update_file():
     owner_user_input = request.form.get('owner_user', '').strip()
     new_content = request.form.get('content', '')
 
-    # 确定文件路径
     browse_path = os.path.join(UPLOAD_FOLDER, current_dir)
     full_path = os.path.join(browse_path, filename)
 
@@ -286,17 +290,14 @@ def update_file():
     file_meta = metadata.get(filename, {})
     file_owner = file_meta.get('owner', 'shared')
 
-    # 若为个人文件，需校验用户名
     if file_owner != 'shared':
         if owner_user_input != file_owner:
             flash("用户名不匹配，无权编辑此文件")
             return redirect(url_for('index', dir=current_dir, selected=filename))
 
-    # 更新文件内容
     with open(full_path, 'w', encoding='utf-8') as f:
         f.write(new_content)
 
-    # 更新编辑时间
     file_meta['edit_time'] = str(int(time.time()))
     metadata[filename] = file_meta
     save_metadata(metadata)
@@ -348,6 +349,49 @@ def rmdir():
             flash(f"文件夹 '{folder_name}' 已删除。")
         else:
             flash("文件夹非空或不存在，无法删除")
+    return redirect(url_for('index', dir=current_dir))
+
+@app.route('/rename_item', methods=['POST'])
+def rename_item():
+    current_dir = request.form.get('dir', '')
+    old_name = request.form.get('old_name', '').strip()
+    new_name = request.form.get('new_name', '').strip()
+    item_type = request.form.get('type', '')  # 'file' or 'folder'
+
+    if not is_valid_name(new_name):
+        flash("新名称不合法，只能包含字母、数字、下划线、点和横杠。")
+        return redirect(url_for('index', dir=current_dir))
+
+    old_path = os.path.join(UPLOAD_FOLDER, current_dir, old_name)
+    new_path = os.path.join(UPLOAD_FOLDER, current_dir, new_name)
+
+    if not os.path.exists(old_path):
+        flash("原文件/文件夹不存在。")
+        return redirect(url_for('index', dir=current_dir))
+
+    if os.path.exists(new_path):
+        flash("目标名称已存在，无法重命名。")
+        return redirect(url_for('index', dir=current_dir))
+
+    if item_type == 'file':
+        metadata = load_metadata()
+        if old_name not in metadata:
+            flash("元数据中未找到此文件。")
+            return redirect(url_for('index', dir=current_dir))
+        os.rename(old_path, new_path)
+        file_meta = metadata[old_name]
+        del metadata[old_name]
+        file_meta['original_name'] = new_name
+        file_meta['edit_time'] = str(int(time.time()))
+        metadata[new_name] = file_meta
+        save_metadata(metadata)
+        flash("文件重命名成功。")
+    elif item_type == 'folder':
+        os.rename(old_path, new_path)
+        flash("文件夹重命名成功。")
+    else:
+        flash("无效的重命名类型。")
+
     return redirect(url_for('index', dir=current_dir))
 
 if __name__ == '__main__':
