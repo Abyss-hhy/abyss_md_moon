@@ -11,7 +11,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'upload_folder')
 METADATA_FILE = os.path.join(BASE_DIR, 'metadata.json')
 
-# 初始化：确保upload_folder存在
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
@@ -37,6 +36,7 @@ def index():
     sort_order = request.args.get('order', 'asc')
     search_keyword = request.args.get('search', '').strip()
     selected = request.args.get('selected', '')
+    auth_user = request.args.get('auth_user', '').strip()  # 用户输入查看文件的用户名
 
     browse_path = os.path.join(UPLOAD_FOLDER, current_dir)
     if not os.path.exists(browse_path):
@@ -69,7 +69,7 @@ def index():
                     'original_name': original_name,
                     'upload_time': formatted_upload_time,
                     'edit_time': formatted_edit_time,
-                    'owner': owner  # 仅用于后端验证，不在前端显示
+                    'owner': owner
                 })
 
     # 排序
@@ -90,19 +90,33 @@ def index():
         parts = current_dir.strip('/').split('/')
         parent_dir = '/'.join(parts[:-1])
 
-    # 如果有选中的文件，读取其内容
+    # 选中文件逻辑
     selected_file_content = ''
     selected_file_owner = 'shared'
     selected_file_original_name = ''
+    need_auth_to_view = False  # 标记是否需要输入用户名才能查看
     if selected:
         selected_file_info = next((f for f in files if f['name'] == selected), None)
         if selected_file_info:
             selected_full_path = os.path.join(browse_path, selected)
-            if os.path.exists(selected_full_path):
-                with open(selected_full_path, 'r', encoding='utf-8') as f:
-                    selected_file_content = f.read()
-                selected_file_owner = selected_file_info['owner']
-                selected_file_original_name = selected_file_info['original_name']
+            selected_file_owner = selected_file_info['owner']
+            selected_file_original_name = selected_file_info['original_name']
+
+            if selected_file_owner != 'shared':
+                # 是个人文件，需要auth_user匹配
+                if auth_user == selected_file_owner:
+                    # 用户名匹配，显示内容
+                    if os.path.exists(selected_full_path):
+                        with open(selected_full_path, 'r', encoding='utf-8') as f:
+                            selected_file_content = f.read()
+                else:
+                    # 用户名不匹配或者未提供
+                    need_auth_to_view = True
+            else:
+                # 共享文件，无需用户名
+                if os.path.exists(selected_full_path):
+                    with open(selected_full_path, 'r', encoding='utf-8') as f:
+                        selected_file_content = f.read()
 
     return render_template('index.html',
                            current_dir=current_dir,
@@ -115,7 +129,8 @@ def index():
                            selected_file=selected,
                            selected_file_content=selected_file_content,
                            selected_file_owner=selected_file_owner,
-                           selected_file_original_name=selected_file_original_name)
+                           selected_file_original_name=selected_file_original_name,
+                           need_auth_to_view=need_auth_to_view)
 
 @app.route('/upload')
 def upload_page():
@@ -195,7 +210,7 @@ def update_file():
     save_metadata(metadata)
 
     flash("文件已保存")
-    return redirect(url_for('index', dir=current_dir, selected=filename))
+    return redirect(url_for('index', dir=current_dir, selected=filename, auth_user=owner_user_input if file_owner!='shared' else ''))
 
 @app.route('/delete/<path:filepath>', methods=['POST'])
 def delete_file(filepath):
@@ -207,7 +222,7 @@ def delete_file(filepath):
     if file_meta.get('owner', 'shared') != 'shared':
         if user_input_owner != file_meta['owner']:
             flash("用户名不匹配，无权删除此文件")
-            return redirect(url_for('index'))
+            return redirect(url_for('index', dir=os.path.dirname(filepath)))
 
     if os.path.exists(full_path) and os.path.isfile(full_path):
         os.remove(full_path)
