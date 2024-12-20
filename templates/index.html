@@ -139,8 +139,8 @@
             </form>
             <form id="batch_delete_form" action="{{ url_for('delete_selected') }}" method="post" style="display:inline;" onsubmit="return confirm('确认批量删除选中的文件吗？');">
                 <input type="hidden" name="dir" value="{{ current_dir }}">
-                <!-- 统一用户名输入 -->
-                <input type="text" name="owner_user" placeholder="用户名" class="input-text short-input" required>
+                <!-- 用户名不设为必填，如果只处理共享文件可不填 -->
+                <input type="text" name="owner_user" placeholder="用户名(个人文件必填, 共享文件不填)" class="input-text short-input">
                 <button type="submit" class="btn danger">批量删除</button>
             </form>
             <form id="batch_move_form" action="{{ url_for('move_selected') }}" method="post" style="display:inline;">

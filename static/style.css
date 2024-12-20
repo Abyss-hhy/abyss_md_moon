@@ -186,9 +186,9 @@ body {
     margin-left: 20px;
 }
 
-/* 放大勾选框 */
+/* 加大勾选框尺寸 */
 .file-checkbox input[type="checkbox"] {
-    transform: scale(1.8);
+    transform: scale(2.5); /* 放大倍数调整为2.5 */
     margin: 0 20px;
     cursor: pointer;
 }
