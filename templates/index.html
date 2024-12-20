@@ -89,11 +89,11 @@
             {% for f in files %}
                 <li>
                     <a href="?dir={{ current_dir }}&selected={{ f.name }}">{{ f.original_name }}</a><br>
-                    <small>上传: {{ f.upload_time }} | 编辑: {{ f.edit_time }} | 所有者: {{ f.owner }}</small><br>
+                    <small>上传: {{ f.upload_time }} | 编辑: {{ f.edit_time }}</small><br>
                     <a class="btn" href="{{ url_for('download_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}">下载</a>
                     <form action="{{ url_for('delete_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}" method="post" style="display:inline;">
                         {% if f.owner != 'shared' %}
-                        <input type="text" name="owner_user" placeholder="用户名" class="input-text short-input">
+                        <input type="text" name="owner_user" placeholder="用户名" class="input-text short-input" required>
                         {% endif %}
                         <button type="submit" class="btn">删除</button>
                     </form>
@@ -103,6 +103,15 @@
         </div>
     </div>
     <div class="right-panel">
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <ul class="flashes">
+            {% for message in messages %}
+              <li>{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
         {% if selected_file %}
             <h3>{{ selected_file_original_name }}</h3>
             <hr>

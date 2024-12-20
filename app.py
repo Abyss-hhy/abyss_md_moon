@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, send_file,
 import os
 import time
 import json
-import urllib.parse
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'some_secret_key'  # 用于flash消息，可自行修改
@@ -11,6 +11,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'upload_folder')
 METADATA_FILE = os.path.join(BASE_DIR, 'metadata.json')
 
+# 初始化：确保upload_folder存在
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
@@ -25,6 +26,9 @@ def load_metadata():
 def save_metadata(data):
     with open(METADATA_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
+
+def format_timestamp(ts):
+    return datetime.fromtimestamp(int(ts)).strftime('%Y-%m-%d %H:%M:%S')
 
 @app.route('/')
 def index():
@@ -57,12 +61,15 @@ def index():
                 if search_keyword:
                     if search_keyword.lower() not in original_name.lower():
                         continue
+                # 格式化时间
+                formatted_upload_time = format_timestamp(upload_time) if upload_time else ''
+                formatted_edit_time = format_timestamp(edit_time) if edit_time else ''
                 files.append({
                     'name': item,
                     'original_name': original_name,
-                    'upload_time': upload_time,
-                    'edit_time': edit_time,
-                    'owner': owner
+                    'upload_time': formatted_upload_time,
+                    'edit_time': formatted_edit_time,
+                    'owner': owner  # 仅用于后端验证，不在前端显示
                 })
 
     # 排序
@@ -141,12 +148,12 @@ def upload_file():
                 "owner": owner_user if owner_type == 'personal' and owner_user else 'shared'
             }
 
-        return redirect(url_for('index', dir=current_dir))
-
-    @app.route('/download/<path:filepath>')
-    def download_file(filepath):
-        full_path = os.path.join(UPLOAD_FOLDER, filepath)
     save_metadata(metadata)
+    return redirect(url_for('index', dir=current_dir))
+
+@app.route('/download/<path:filepath>')
+def download_file(filepath):
+    full_path = os.path.join(UPLOAD_FOLDER, filepath)
     if os.path.exists(full_path):
         return send_file(full_path, as_attachment=True)
     else:

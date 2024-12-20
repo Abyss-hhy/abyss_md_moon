@@ -8,6 +8,9 @@
 <body>
 <div class="header">
     <div class="logo">abyss' markdown store</div>
+    <div class="controls">
+        <a href="{{ url_for('index', dir=current_dir) }}" class="btn">返回</a>
+    </div>
 </div>
 <div class="upload-page-wrapper">
     <div class="upload-container">
@@ -23,7 +26,6 @@
             <input type="text" name="owner_user" placeholder="（个人文件请输入用户名）" class="input-text">
             <button type="submit" class="btn primary">上传</button>
         </form>
-        <a href="{{ url_for('index', dir=current_dir) }}">返回</a>
     </div>
 </div>
 <div class="footer">
