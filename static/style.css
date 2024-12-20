@@ -1,0 +1,231 @@
+body {
+    margin: 0;
+    font-family: "Microsoft YaHei", Arial, sans-serif;
+    background: #f9f9f9;
+    font-size: 32px; /* 将字体加大一倍 */
+    color: #333;
+}
+
+.header {
+    background: #333;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    padding: 20px; /* 适当放大间距，保持比例 */
+}
+
+.header .logo {
+    font-size: 40px; /* logo再大一些 */
+    font-weight: bold;
+    margin-right: 40px;
+}
+
+.header .controls {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.search-container input {
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 32px;
+}
+
+.sort-container {
+    margin-left: 40px;
+    display: inline-block;
+    font-size:32px;
+}
+
+.btn {
+    background: #eee;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 12px 24px;
+    text-decoration: none;
+    color: #333;
+    cursor: pointer;
+    margin: 0 10px;
+    font-size: 32px;
+}
+
+.btn:hover {
+    background: #ddd;
+}
+
+.btn.primary {
+    background: #4CAF50;
+    color: #fff;
+    border: none;
+}
+
+.btn.primary:hover {
+    background: #45a049;
+}
+
+.main {
+    display: flex;
+    height: calc(100vh - 140px);
+    box-sizing: border-box;
+    font-size:32px;
+}
+
+.left-panel {
+    width: 40%;
+    border-right: 1px solid #ccc;
+    padding: 20px;
+    overflow-y: auto;
+    background: #fff;
+    font-size:32px;
+}
+
+.right-panel {
+    width: 60%;
+    padding: 20px;
+    overflow-y: auto;
+    background: #fff;
+    font-size:32px;
+}
+
+.folder-list ul, .file-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.folder-list li, .file-list li {
+    margin-bottom: 20px;
+    font-size:32px;
+}
+
+.file-list li {
+    background: #fafafa;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+}
+
+.folder-list li a, .file-list li a {
+    color: #333;
+    text-decoration: none;
+}
+
+.folder-list li a:hover, .file-list li a:hover {
+    text-decoration: underline;
+}
+
+.input-text {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size:32px;
+    margin: 0 10px;
+}
+
+.short-input {
+    width: 120px;
+}
+
+.textarea {
+    width: 100%;
+    height: 600px;
+    font-family: Consolas, "Courier New", monospace;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size:32px;
+}
+
+.md-content {
+    background: #fefefe;
+    border: 1px solid #ccc;
+    padding: 20px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: Consolas, "Courier New", monospace;
+    border-radius: 8px;
+    font-size:32px;
+}
+
+.footer {
+    text-align: center;
+    font-size: 24px;
+    padding: 20px;
+    background: #f0f0f0;
+    color: #333;
+}
+
+/* 上传页面的样式居中显示 */
+.upload-page-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: calc(100vh - 140px);
+    box-sizing: border-box;
+}
+
+.upload-container {
+    max-width: 800px;
+    width: 100%;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding:40px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.upload-container h1 {
+    font-size: 40px;
+    margin-bottom: 40px;
+}
+
+.upload-container form {
+    display: flex;
+    flex-direction: column;
+}
+
+.upload-container input[type="file"] {
+    margin-bottom: 40px;
+    font-size:32px;
+}
+
+.upload-container .owner-type {
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+}
+
+.upload-container .owner-type input {
+    margin-right: 10px;
+    transform: scale(1.5);
+}
+
+.upload-container .owner-type label {
+    margin-right: 40px;
+    font-size:32px;
+}
+
+.upload-container input[name="owner_user"] {
+    margin-bottom: 40px;
+}
+
+.upload-container button {
+    align-self: flex-start;
+    font-size:32px;
+    padding: 12px 24px;
+}
+
+.upload-container a {
+    display: inline-block;
+    margin-top: 40px;
+    font-size:32px;
+    text-decoration: none;
+    color: #4CAF50;
+}
+
+.upload-container a:hover {
+    text-decoration: underline;
+}

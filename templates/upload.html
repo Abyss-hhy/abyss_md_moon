@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>上传文件</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="header">
+    <div class="logo">abyss' markdown store</div>
+</div>
+<div class="upload-page-wrapper">
+    <div class="upload-container">
+        <h1>上传文件</h1>
+        <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="dir" value="{{ current_dir }}">
+            <!-- 支持一次选择多个文件 -->
+            <input type="file" name="file" multiple required>
+            <div class="owner-type">
+                <label><input type="radio" name="owner_type" value="shared" checked> 共享文件</label>
+                <label><input type="radio" name="owner_type" value="personal"> 个人文件</label>
+            </div>
+            <input type="text" name="owner_user" placeholder="（个人文件请输入用户名）" class="input-text">
+            <button type="submit" class="btn primary">上传</button>
+        </form>
+        <a href="{{ url_for('index', dir=current_dir) }}">返回</a>
+    </div>
+</div>
+<div class="footer">
+    abyss' markdown store - version0.0.1
+</div>
+</body>
+</html>

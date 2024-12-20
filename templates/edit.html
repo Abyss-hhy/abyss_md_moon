@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>编辑文件</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        function verifyOwner() {
+            var input = document.getElementById('owner_user_input').value.trim();
+            var form = document.getElementById('edit_form');
+            form.owner_user.value = input;
+            form.submit();
+        }
+    </script>
+</head>
+<body>
+<h1>编辑MD文件</h1>
+
+{% if need_auth %}
+<p>此文件为个人文件，所有者为: {{ owner }}，请输入对应用户名后再行编辑。</p>
+<form method="post" onsubmit="return false;">
+    <input type="text" id="owner_user_input" placeholder="输入用户名">
+    <button type="button" onclick="verifyOwner()">确认</button>
+</form>
+{% else %}
+<!-- 直接显示可编辑区域 -->
+<form id="edit_form" method="post" action="{{ url_for('edit_file', filepath=filepath) }}">
+    <input type="hidden" name="owner_user" value="{{ owner }}">
+    <textarea name="content" style="width:100%;height:300px;">{{ content }}</textarea>
+    <br>
+    <button type="submit">保存</button>
+    <a href="{{ url_for('index', dir=filepath|replace(filepath.split('/')[-1],'')|trim('/')) }}">取消</a>
+</form>
+{% endif %}
+
+{% if need_auth %}
+<!-- 若需要auth时，用户提交时再POST过去 -->
+<form id="edit_form" method="post" action="{{ url_for('edit_file', filepath=filepath) }}" style="display:none;">
+    <input type="hidden" name="owner_user">
+    <textarea name="content" style="width:100%;height:300px;">{{ content }}</textarea>
+    <br>
+</form>
+{% endif %}
+</body>
+</html>

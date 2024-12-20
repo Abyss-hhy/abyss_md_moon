@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>Markdown Store</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        function changeSort(sortBy) {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('sort_by') === sortBy) {
+                let order = urlParams.get('order') || 'asc';
+                order = (order === 'asc') ? 'desc' : 'asc';
+                urlParams.set('order', order);
+            } else {
+                urlParams.set('sort_by', sortBy);
+                urlParams.set('order', 'asc');
+            }
+            window.location.search = urlParams.toString();
+        }
+
+        function doSearch() {
+            const keyword = document.getElementById('search_input').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('search', keyword);
+            window.location.search = urlParams.toString();
+        }
+
+        let isEditing = false;
+        function startEditing() {
+            document.getElementById('view_mode').style.display = 'none';
+            document.getElementById('edit_mode').style.display = 'block';
+            isEditing = true;
+        }
+
+        function cancelEditing() {
+            document.getElementById('edit_mode').style.display = 'none';
+            document.getElementById('view_mode').style.display = 'block';
+            isEditing = false;
+        }
+    </script>
+</head>
+<body>
+<div class="header">
+    <div class="logo">abyss' markdown store</div>
+    <div class="controls">
+        <a href="{{ url_for('upload_page', dir=current_dir) }}" class="btn primary">上传文件</a>
+        <div class="search-container">
+            <input type="text" id="search_input" placeholder="搜索..." value="{{ search_keyword }}">
+            <button class="btn" onclick="doSearch()">搜索</button>
+        </div>
+        <div class="sort-container">
+            <span>排序:</span>
+            <button class="btn" onclick="changeSort('name')">名称</button>
+            <button class="btn" onclick="changeSort('upload_time')">上传时间</button>
+            <button class="btn" onclick="changeSort('edit_time')">编辑时间</button>
+        </div>
+    </div>
+</div>
+<div class="main">
+    <div class="left-panel">
+        <div class="folder-nav">
+            {% if parent_dir != '' %}
+            <a href="{{ url_for('index', dir=parent_dir) }}" class="btn">返回上级</a>
+            {% endif %}
+        </div>
+        <div class="folder-ops">
+            <form action="{{ url_for('mkdir') }}" method="post" style="display:inline;">
+                <input type="hidden" name="dir" value="{{ current_dir }}">
+                <input type="text" name="folder_name" placeholder="新建文件夹名" class="input-text">
+                <button type="submit" class="btn">新建文件夹</button>
+            </form>
+            <form action="{{ url_for('rmdir') }}" method="post" style="display:inline;">
+                <input type="hidden" name="dir" value="{{ current_dir }}">
+                <input type="text" name="folder_name" placeholder="删除空文件夹名" class="input-text">
+                <button type="submit" class="btn">删除文件夹</button>
+            </form>
+        </div>
+        <hr>
+        <div class="folder-list">
+            <ul>
+            {% for folder in folders %}
+                <li>[DIR] <a href="{{ url_for('index', dir=(current_dir ~ '/' ~ folder if current_dir else folder)) }}">{{ folder }}</a></li>
+            {% endfor %}
+            </ul>
+        </div>
+        <hr>
+        <div class="file-list">
+            <ul>
+            {% for f in files %}
+                <li>
+                    <a href="?dir={{ current_dir }}&selected={{ f.name }}">{{ f.original_name }}</a><br>
+                    <small>上传: {{ f.upload_time }} | 编辑: {{ f.edit_time }} | 所有者: {{ f.owner }}</small><br>
+                    <a class="btn" href="{{ url_for('download_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}">下载</a>
+                    <form action="{{ url_for('delete_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}" method="post" style="display:inline;">
+                        {% if f.owner != 'shared' %}
+                        <input type="text" name="owner_user" placeholder="用户名" class="input-text short-input">
+                        {% endif %}
+                        <button type="submit" class="btn">删除</button>
+                    </form>
+                </li>
+            {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <div class="right-panel">
+        {% if selected_file %}
+            <h3>{{ selected_file_original_name }}</h3>
+            <hr>
+            <div id="view_mode" style="display:block;">
+                <div class="md-content">
+                    <pre>{{ selected_file_content }}</pre>
+                </div>
+                <br>
+                <button class="btn primary" onclick="startEditing()">编辑</button>
+            </div>
+            <div id="edit_mode" style="display:none;">
+                <form method="post" action="{{ url_for('update_file') }}">
+                    <input type="hidden" name="dir" value="{{ current_dir }}">
+                    <input type="hidden" name="filename" value="{{ selected_file }}">
+                    {% if selected_file_owner != 'shared' %}
+                        <p>这是个人文件，请输入用户名：</p>
+                        <input type="text" name="owner_user" class="input-text" placeholder="用户名" required>
+                    {% else %}
+                        <input type="hidden" name="owner_user" value="shared">
+                    {% endif %}
+                    <textarea name="content" class="textarea">{{ selected_file_content }}</textarea>
+                    <br>
+                    <button type="submit" class="btn primary">保存</button>
+                    <button type="button" class="btn" onclick="cancelEditing()">取消</button>
+                </form>
+            </div>
+        {% else %}
+            <p>请选择一个MD文件以查看和编辑内容。</p>
+        {% endif %}
+    </div>
+</div>
+<div class="footer">
+    abyss' markdown store - version0.0.1
+</div>
+</body>
+</html>
