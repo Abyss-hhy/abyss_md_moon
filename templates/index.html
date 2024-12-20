@@ -41,6 +41,57 @@
         function confirmDelete() {
             return confirm('确认删除吗？');
         }
+
+        // 批量操作表单提交
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('batch_download_form').addEventListener('submit', function(e) {
+                const selected = document.querySelectorAll('input[name="selected_files"]:checked');
+                if (selected.length === 0) {
+                    alert('请至少选择一个文件进行下载。');
+                    e.preventDefault();
+                    return;
+                }
+                selected.forEach(function(file) {
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'selected_files';
+                    hiddenInput.value = file.value;
+                    e.target.appendChild(hiddenInput);
+                });
+            });
+
+            document.getElementById('batch_delete_form').addEventListener('submit', function(e) {
+                const selected = document.querySelectorAll('input[name="selected_files"]:checked');
+                if (selected.length === 0) {
+                    alert('请至少选择一个文件进行删除。');
+                    e.preventDefault();
+                    return;
+                }
+                selected.forEach(function(file) {
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'selected_files';
+                    hiddenInput.value = file.value;
+                    e.target.appendChild(hiddenInput);
+                });
+            });
+
+            document.getElementById('batch_move_form').addEventListener('submit', function(e) {
+                const selected = document.querySelectorAll('input[name="selected_files"]:checked');
+                if (selected.length === 0) {
+                    alert('请至少选择一个文件进行移动。');
+                    e.preventDefault();
+                    return;
+                }
+                selected.forEach(function(file) {
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'selected_files';
+                    hiddenInput.value = file.value;
+                    e.target.appendChild(hiddenInput);
+                });
+            });
+        });
     </script>
 </head>
 <body>
@@ -80,6 +131,25 @@
             </form>
         </div>
         <hr>
+        <!-- 批量操作按钮 -->
+        <div class="batch-operations">
+            <form id="batch_download_form" action="{{ url_for('download_selected') }}" method="post" style="display:inline;">
+                <input type="hidden" name="dir" value="{{ current_dir }}">
+                <button type="submit" class="btn primary">批量下载</button>
+            </form>
+            <form id="batch_delete_form" action="{{ url_for('delete_selected') }}" method="post" style="display:inline;" onsubmit="return confirm('确认批量删除选中的文件吗？');">
+                <input type="hidden" name="dir" value="{{ current_dir }}">
+                <!-- 统一用户名输入 -->
+                <input type="text" name="owner_user" placeholder="用户名" class="input-text short-input" required>
+                <button type="submit" class="btn danger">批量删除</button>
+            </form>
+            <form id="batch_move_form" action="{{ url_for('move_selected') }}" method="post" style="display:inline;">
+                <input type="hidden" name="dir" value="{{ current_dir }}">
+                <input type="text" name="target_dir" placeholder="目标目录" class="input-text short-input" required>
+                <button type="submit" class="btn secondary">批量移动</button>
+            </form>
+        </div>
+        <hr>
         <div class="folder-list">
             <ul>
             {% for folder in folders %}
@@ -92,6 +162,7 @@
             <ul>
             {% for f in files %}
                 <li>
+                    <input type="checkbox" name="selected_files" value="{{ f.name }}">
                     <a href="?dir={{ current_dir }}&selected={{ f.name }}">{{ f.original_name }}</a><br>
                     {% if f.owner == 'shared' %}
                         <small>类型：共享文件</small><br>
@@ -104,7 +175,7 @@
                         {% if f.owner != 'shared' %}
                         <input type="text" name="owner_user" placeholder="用户名" class="input-text short-input" required>
                         {% endif %}
-                        <button type="submit" class="btn">删除</button>
+                        <button type="submit" class="btn danger">删除</button>
                     </form>
                 </li>
             {% endfor %}
@@ -174,5 +245,61 @@
 <div class="footer">
     abyss' markdown store - version0.0.1
 </div>
+
+<!-- 批量操作JavaScript -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 批量下载
+        document.getElementById('batch_download_form').addEventListener('submit', function(e) {
+            const selected = document.querySelectorAll('input[name="selected_files"]:checked');
+            if (selected.length === 0) {
+                alert('请至少选择一个文件进行下载。');
+                e.preventDefault();
+                return;
+            }
+            selected.forEach(function(file) {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'selected_files';
+                hiddenInput.value = file.value;
+                e.target.appendChild(hiddenInput);
+            });
+        });
+
+        // 批量删除
+        document.getElementById('batch_delete_form').addEventListener('submit', function(e) {
+            const selected = document.querySelectorAll('input[name="selected_files"]:checked');
+            if (selected.length === 0) {
+                alert('请至少选择一个文件进行删除。');
+                e.preventDefault();
+                return;
+            }
+            selected.forEach(function(file) {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'selected_files';
+                hiddenInput.value = file.value;
+                e.target.appendChild(hiddenInput);
+            });
+        });
+
+        // 批量移动
+        document.getElementById('batch_move_form').addEventListener('submit', function(e) {
+            const selected = document.querySelectorAll('input[name="selected_files"]:checked');
+            if (selected.length === 0) {
+                alert('请至少选择一个文件进行移动。');
+                e.preventDefault();
+                return;
+            }
+            selected.forEach(function(file) {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'selected_files';
+                hiddenInput.value = file.value;
+                e.target.appendChild(hiddenInput);
+            });
+        });
+    });
+</script>
 </body>
 </html>

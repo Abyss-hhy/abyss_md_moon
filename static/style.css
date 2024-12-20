@@ -80,6 +80,26 @@ body {
     background: #45a049;
 }
 
+.btn.danger {
+    background: #f44336;
+    color: #fff;
+    border: none;
+}
+
+.btn.danger:hover {
+    background: #da190b;
+}
+
+.btn.secondary {
+    background: #008CBA;
+    color: #fff;
+    border: none;
+}
+
+.btn.secondary:hover {
+    background: #007bb5;
+}
+
 /* Main 内容区域 */
 .main {
     display: flex;
@@ -95,6 +115,16 @@ body {
     overflow-y: auto;
     background: #fff;
     font-size:32px;
+}
+
+/* 批量操作按钮 */
+.batch-operations {
+    margin-bottom: 20px;
+}
+
+.batch-operations form {
+    display: inline-block;
+    margin-right: 10px;
 }
 
 /* 右侧内容展示区 */
@@ -140,11 +170,11 @@ body {
     border: 1px solid #ccc;
     border-radius: 8px;
     font-size:32px;
-    margin: 0 10px;
+    margin: 0 10px 10px 0;
 }
 
 .short-input {
-    width: 120px;
+    width: 200px;
 }
 
 /* 文本区域样式 */

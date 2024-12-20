@@ -3,6 +3,8 @@ import os
 import time
 import json
 from datetime import datetime
+import zipfile
+import io
 
 app = Flask(__name__)
 app.secret_key = 'some_secret_key'  # 用于flash消息，可自行修改
@@ -176,6 +178,95 @@ def download_file(filepath):
         flash("文件不存在")
         return redirect(url_for('index'))
 
+@app.route('/download_selected', methods=['POST'])
+def download_selected():
+    selected_files = request.form.getlist('selected_files')
+    dir_path = request.form.get('dir', '')
+
+    if not selected_files:
+        flash("未选择任何文件进行下载。")
+        return redirect(url_for('index', dir=dir_path))
+
+    # 创建内存中的ZIP文件
+    memory_file = io.BytesIO()
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for file in selected_files:
+            file_path = os.path.join(UPLOAD_FOLDER, dir_path, file)
+            if os.path.exists(file_path) and file.lower().endswith('.md'):
+                zf.write(file_path, arcname=file)
+
+    memory_file.seek(0)
+    return send_file(memory_file, attachment_filename='selected_files.zip', as_attachment=True)
+
+@app.route('/delete_selected', methods=['POST'])
+def delete_selected():
+    selected_files = request.form.getlist('selected_files')
+    dir_path = request.form.get('dir', '')
+    owner_user = request.form.get('owner_user', '').strip()
+
+    if not selected_files:
+        flash("未选择任何文件进行删除。")
+        return redirect(url_for('index', dir=dir_path))
+
+    metadata = load_metadata()
+    for file in selected_files:
+        file_meta = metadata.get(file, {})
+        file_owner = file_meta.get('owner', 'shared')
+        if file_owner != 'shared' and owner_user != file_owner:
+            flash(f"文件 '{file_meta.get('original_name', file)}' 的用户名不匹配，无法删除。")
+            continue  # 跳过未通过验证的文件
+
+        file_path = os.path.join(UPLOAD_FOLDER, dir_path, file)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            os.remove(file_path)
+            del metadata[file]
+            flash(f"文件 '{file_meta.get('original_name', file)}' 已删除。")
+        else:
+            flash(f"文件 '{file_meta.get('original_name', file)}' 不存在或无法删除。")
+
+    save_metadata(metadata)
+    return redirect(url_for('index', dir=dir_path))
+
+@app.route('/move_selected', methods=['POST'])
+def move_selected():
+    selected_files = request.form.getlist('selected_files')
+    target_dir = request.form.get('target_dir', '').strip()
+    current_dir = request.form.get('dir', '').strip()
+
+    if not selected_files:
+        flash("未选择任何文件进行移动。")
+        return redirect(url_for('index', dir=current_dir))
+
+    if not target_dir:
+        flash("目标目录不能为空。")
+        return redirect(url_for('index', dir=current_dir))
+
+    target_path = os.path.join(UPLOAD_FOLDER, target_dir)
+    if not os.path.exists(target_path):
+        os.makedirs(target_path)
+
+    metadata = load_metadata()
+    for file in selected_files:
+        file_meta = metadata.get(file, {})
+        file_owner = file_meta.get('owner', 'shared')
+        file_path = os.path.join(UPLOAD_FOLDER, current_dir, file)
+        dest_path = os.path.join(target_path, file)
+
+        if file_owner != 'shared':
+            flash(f"文件 '{file_meta.get('original_name', file)}' 是个人文件，无法批量移动。")
+            continue  # 跳过个人文件的批量移动
+
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            os.rename(file_path, dest_path)
+            metadata[file]['upload_time'] = str(int(time.time()))
+            metadata[file]['edit_time'] = str(int(time.time()))
+            flash(f"文件 '{file_meta.get('original_name', file)}' 已移动到 '{target_dir}'。")
+        else:
+            flash(f"文件 '{file_meta.get('original_name', file)}' 不存在或无法移动。")
+
+    save_metadata(metadata)
+    return redirect(url_for('index', dir=current_dir))
+
 @app.route('/update_file', methods=['POST'])
 def update_file():
     current_dir = request.form.get('dir', '')
@@ -254,6 +345,7 @@ def rmdir():
         target_path = os.path.join(UPLOAD_FOLDER, current_dir, folder_name)
         if os.path.exists(target_path) and os.path.isdir(target_path) and not os.listdir(target_path):
             os.rmdir(target_path)
+            flash(f"文件夹 '{folder_name}' 已删除。")
         else:
             flash("文件夹非空或不存在，无法删除")
     return redirect(url_for('index', dir=current_dir))
