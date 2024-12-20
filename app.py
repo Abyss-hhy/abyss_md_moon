@@ -6,15 +6,15 @@ from datetime import datetime
 import zipfile
 import io
 import re
+import shutil
 
 app = Flask(__name__)
-app.secret_key = 'some_secret_key'  # 用于flash消息，可自行修改
+app.secret_key = 'some_secret_key'
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'upload_folder')
 METADATA_FILE = os.path.join(BASE_DIR, 'metadata.json')
 
-# 初始化：确保upload_folder存在
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
@@ -34,9 +34,26 @@ def format_timestamp(ts):
     return datetime.fromtimestamp(int(ts)).strftime('%Y-%m-%d %H:%M:%S')
 
 def is_valid_name(name):
-    # 不允许中文，仅限字母、数字、下划线、点、横杠
+    # 不允许中文，仅限字母、数字、下划线、点和横杠
     pattern = re.compile(r'^[A-Za-z0-9._-]+$')
     return bool(pattern.match(name))
+
+def list_all_dirs():
+    # 列出upload_folder内所有子目录的相对路径，用于批量移动下拉框
+    dir_list = ['']  # 根目录对应空字符串
+    for root, dirs, files in os.walk(UPLOAD_FOLDER):
+        # root是绝对路径，需要转换成相对UPLOAD_FOLDER的路径
+        rel_path = os.path.relpath(root, UPLOAD_FOLDER)
+        # 第一次循环root就是UPLOAD_FOLDER本身，rel_path会是'.'，略过
+        if rel_path == '.':
+            rel_path = ''
+        for d in dirs:
+            d_path = os.path.join(rel_path, d).strip('./\\')
+            dir_list.append(d_path)
+    # 去重并排序
+    dir_list = list(set(dir_list))
+    dir_list.sort()
+    return dir_list
 
 @app.route('/')
 def index():
@@ -45,7 +62,7 @@ def index():
     sort_order = request.args.get('order', 'asc')
     search_keyword = request.args.get('search', '').strip()
     selected = request.args.get('selected', '')
-    auth_user = request.args.get('auth_user', '').strip()  # 用户输入查看文件的用户名
+    auth_user = request.args.get('auth_user', '').strip()
 
     browse_path = os.path.join(UPLOAD_FOLDER, current_dir)
     if not os.path.exists(browse_path):
@@ -73,7 +90,6 @@ def index():
                 if search_keyword:
                     if search_keyword.lower() not in original_name.lower():
                         continue
-                # 格式化时间
                 formatted_upload_time = format_timestamp(upload_time) if upload_time else ''
                 formatted_edit_time = format_timestamp(edit_time) if edit_time else ''
                 files.append({
@@ -84,7 +100,6 @@ def index():
                     'owner': owner
                 })
 
-    # 排序文件
     def sort_key(f):
         if sort_by == 'name':
             return f['original_name'].lower()
@@ -102,7 +117,6 @@ def index():
         parts = current_dir.strip('/').split('/')
         parent_dir = '/'.join(parts[:-1])
 
-    # 文件内容查看逻辑
     selected_file_content = ''
     selected_file_owner = 'shared'
     selected_file_original_name = ''
@@ -127,6 +141,9 @@ def index():
                     with open(selected_full_path, 'r', encoding='utf-8') as f:
                         selected_file_content = f.read()
 
+    # 获取所有目录列表，用于批量移动选择框
+    all_dirs = list_all_dirs()
+
     return render_template('index.html',
                            current_dir=current_dir,
                            parent_dir=parent_dir,
@@ -139,7 +156,8 @@ def index():
                            selected_file_content=selected_file_content,
                            selected_file_owner=selected_file_owner,
                            selected_file_original_name=selected_file_original_name,
-                           need_auth_to_view=need_auth_to_view)
+                           need_auth_to_view=need_auth_to_view,
+                           all_dirs=all_dirs)
 
 @app.route('/upload')
 def upload_page():
@@ -197,9 +215,8 @@ def download_selected():
     with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
         for file in selected_files:
             file_path = os.path.join(UPLOAD_FOLDER, dir_path, file)
-            if os.path.exists(file_path) and file.lower().endswith('.md'):
+            if os.path.isfile(file_path) and file.lower().endswith('.md'):
                 zf.write(file_path, arcname=file)
-
     memory_file.seek(0)
     return send_file(memory_file, attachment_filename='selected_files.zip', as_attachment=True)
 
@@ -210,24 +227,33 @@ def delete_selected():
     owner_user = request.form.get('owner_user', '').strip()
 
     if not selected_files:
-        flash("未选择任何文件进行删除。")
+        flash("未选择任何文件或文件夹进行删除。")
         return redirect(url_for('index', dir=dir_path))
 
     metadata = load_metadata()
-    for file in selected_files:
-        file_meta = metadata.get(file, {})
-        file_owner = file_meta.get('owner', 'shared')
-        if file_owner != 'shared' and owner_user != file_owner:
-            flash(f"文件 '{file_meta.get('original_name', file)}' 的用户名不匹配，无法删除。")
-            continue
-
-        file_path = os.path.join(UPLOAD_FOLDER, dir_path, file)
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            os.remove(file_path)
-            del metadata[file]
-            flash(f"文件 '{file_meta.get('original_name', file)}' 已删除。")
+    for name in selected_files:
+        target_path = os.path.join(UPLOAD_FOLDER, dir_path, name)
+        if os.path.isdir(target_path):
+            # 文件夹视为共享，不需用户名
+            if os.path.exists(target_path):
+                shutil.rmtree(target_path)
+                flash(f"文件夹 '{name}' 已删除。")
+            else:
+                flash(f"文件夹 '{name}' 不存在或无法删除。")
         else:
-            flash(f"文件 '{file_meta.get('original_name', file)}' 不存在或无法删除。")
+            # 文件
+            file_meta = metadata.get(name, {})
+            file_owner = file_meta.get('owner', 'shared')
+            if file_owner != 'shared' and owner_user != file_owner:
+                flash(f"文件 '{file_meta.get('original_name', name)}' 的用户名不匹配，无法删除。")
+                continue
+            if os.path.exists(target_path) and os.path.isfile(target_path):
+                os.remove(target_path)
+                if name in metadata:
+                    del metadata[name]
+                flash(f"文件 '{file_meta.get('original_name', name)}' 已删除。")
+            else:
+                flash(f"文件 '{file_meta.get('original_name', name)}' 不存在或无法删除。")
 
     save_metadata(metadata)
     return redirect(url_for('index', dir=dir_path))
@@ -242,32 +268,42 @@ def move_selected():
         flash("未选择任何文件进行移动。")
         return redirect(url_for('index', dir=current_dir))
 
-    if not target_dir:
-        flash("目标目录不能为空。")
-        return redirect(url_for('index', dir=current_dir))
-
-    target_path = os.path.join(UPLOAD_FOLDER, target_dir)
-    if not os.path.exists(target_path):
-        os.makedirs(target_path)
-
+    # target_dir为空表示根目录
     metadata = load_metadata()
-    for file in selected_files:
-        file_meta = metadata.get(file, {})
-        file_owner = file_meta.get('owner', 'shared')
-        file_path = os.path.join(UPLOAD_FOLDER, current_dir, file)
-        dest_path = os.path.join(target_path, file)
-
-        if file_owner != 'shared':
-            flash(f"文件 '{file_meta.get('original_name', file)}' 是个人文件，无法批量移动。")
-            continue
-
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            os.rename(file_path, dest_path)
-            metadata[file]['upload_time'] = str(int(time.time()))
-            metadata[file]['edit_time'] = str(int(time.time()))
-            flash(f"文件 '{file_meta.get('original_name', file)}' 已移动到 '{target_dir}'。")
+    for name in selected_files:
+        source_path = os.path.join(UPLOAD_FOLDER, current_dir, name)
+        if not target_dir:
+            dest_path = os.path.join(UPLOAD_FOLDER, name)
         else:
-            flash(f"文件 '{file_meta.get('original_name', file)}' 不存在或无法移动。")
+            dest_path = os.path.join(UPLOAD_FOLDER, target_dir, name)
+
+        if os.path.isdir(source_path):
+            # 文件夹移动
+            # 文件夹视为共享
+            if os.path.exists(dest_path):
+                flash(f"目标位置已存在同名文件夹 '{name}'，无法移动。")
+                continue
+            shutil.move(source_path, dest_path)
+            flash(f"文件夹 '{name}' 已移动到 '{target_dir if target_dir else '根目录'}'。")
+        else:
+            # 文件移动
+            if name not in metadata:
+                flash(f"元数据中未找到文件 '{name}'，无法移动。")
+                continue
+            file_owner = metadata[name].get('owner', 'shared')
+            if file_owner != 'shared':
+                flash(f"文件 '{metadata[name].get('original_name', name)}' 是个人文件，无法批量移动。")
+                continue
+            if os.path.exists(dest_path):
+                flash(f"目标位置已存在同名文件 '{name}'，无法移动。")
+                continue
+            if os.path.exists(source_path) and os.path.isfile(source_path):
+                os.rename(source_path, dest_path)
+                metadata[name]['upload_time'] = str(int(time.time()))
+                metadata[name]['edit_time'] = str(int(time.time()))
+                flash(f"文件 '{metadata[name].get('original_name', name)}' 已移动到 '{target_dir if target_dir else '根目录'}'。")
+            else:
+                flash(f"文件 '{metadata[name].get('original_name', name)}' 不存在或无法移动。")
 
     save_metadata(metadata)
     return redirect(url_for('index', dir=current_dir))
@@ -305,26 +341,34 @@ def update_file():
     flash("文件已保存")
     return redirect(url_for('index', dir=current_dir, selected=filename, auth_user=owner_user_input if file_owner!='shared' else ''))
 
-@app.route('/delete/<path:filepath>', methods=['POST'])
-def delete_file(filepath):
+@app.route('/delete_item/<path:filepath>', methods=['POST'])
+def delete_item(filepath):
     full_path = os.path.join(UPLOAD_FOLDER, filepath)
-    metadata = load_metadata()
-    file_meta = metadata.get(os.path.basename(filepath), {})
-
-    user_input_owner = request.form.get('owner_user', '').strip()
-    if file_meta.get('owner', 'shared') != 'shared':
-        if user_input_owner != file_meta['owner']:
+    # 区分文件还是文件夹
+    if os.path.isdir(full_path):
+        # 文件夹，无需用户名验证
+        if os.path.exists(full_path):
+            shutil.rmtree(full_path)
+            flash(f"文件夹 '{os.path.basename(filepath)}' 已删除。")
+        else:
+            flash("文件夹不存在或无法删除")
+    else:
+        # 文件删除逻辑和delete_file类似
+        metadata = load_metadata()
+        file_meta = metadata.get(os.path.basename(filepath), {})
+        file_owner = file_meta.get('owner', 'shared')
+        user_input_owner = request.form.get('owner_user', '').strip()
+        if file_owner != 'shared' and user_input_owner != file_owner:
             flash("用户名不匹配，无权删除此文件")
             return redirect(url_for('index', dir=os.path.dirname(filepath)))
-
-    if os.path.exists(full_path) and os.path.isfile(full_path):
-        os.remove(full_path)
-        if os.path.basename(filepath) in metadata:
-            del metadata[os.path.basename(filepath)]
-            save_metadata(metadata)
-        flash("文件已删除")
-    else:
-        flash("文件不存在或无法删除")
+        if os.path.exists(full_path) and os.path.isfile(full_path):
+            os.remove(full_path)
+            if os.path.basename(filepath) in metadata:
+                del metadata[os.path.basename(filepath)]
+                save_metadata(metadata)
+            flash("文件已删除")
+        else:
+            flash("文件不存在或无法删除")
 
     return redirect(url_for('index', dir=os.path.dirname(filepath)))
 
@@ -338,25 +382,14 @@ def mkdir():
             os.makedirs(new_path)
     return redirect(url_for('index', dir=current_dir))
 
-@app.route('/rmdir', methods=['POST'])
-def rmdir():
-    current_dir = request.form.get('dir', '')
-    folder_name = request.form.get('folder_name', '').strip()
-    if folder_name:
-        target_path = os.path.join(UPLOAD_FOLDER, current_dir, folder_name)
-        if os.path.exists(target_path) and os.path.isdir(target_path) and not os.listdir(target_path):
-            os.rmdir(target_path)
-            flash(f"文件夹 '{folder_name}' 已删除。")
-        else:
-            flash("文件夹非空或不存在，无法删除")
-    return redirect(url_for('index', dir=current_dir))
+# rmdir已移除，不再需要
 
 @app.route('/rename_item', methods=['POST'])
 def rename_item():
     current_dir = request.form.get('dir', '')
     old_name = request.form.get('old_name', '').strip()
     new_name = request.form.get('new_name', '').strip()
-    item_type = request.form.get('type', '')  # 'file' or 'folder'
+    item_type = request.form.get('type', '')
 
     if not is_valid_name(new_name):
         flash("新名称不合法，只能包含字母、数字、下划线、点和横杠。")

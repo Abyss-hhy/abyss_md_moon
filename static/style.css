@@ -18,7 +18,6 @@ body {
     flex-direction: column;
 }
 
-/* Header 样式 */
 .header {
     background: #333;
     color: #fff;
@@ -110,7 +109,6 @@ body {
     background: #e68a00;
 }
 
-/* Main 内容区域 */
 .main {
     display: flex;
     flex: 1 1 auto;
@@ -135,7 +133,6 @@ body {
     margin-right: 10px;
 }
 
-/* 文件和文件夹列表样式 */
 .folder-list ul, .file-list ul {
     list-style: none;
     padding: 0;

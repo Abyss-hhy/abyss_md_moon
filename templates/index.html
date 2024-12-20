@@ -46,7 +46,7 @@
             // 点击文件条目选中/取消选中
             document.querySelectorAll('.file-item').forEach(function(item) {
                 item.addEventListener('click', function(e) {
-                    // 如果点击的是open-button、rename-button或rename-form，不切换选中
+                    // 若点击open-button、rename-button或rename-form不选择
                     if (e.target.closest('.rename-button') || e.target.closest('.rename-form') || e.target.closest('.open-button')) {
                         return;
                     }
@@ -76,7 +76,7 @@
             document.getElementById('batch_delete_form').addEventListener('submit', function(e) {
                 const selectedItems = document.querySelectorAll('.file-item.selected');
                 if (selectedItems.length === 0) {
-                    alert('请至少选择一个文件进行删除。');
+                    alert('请至少选择一个文件或文件夹进行删除。');
                     e.preventDefault();
                     return;
                 }
@@ -155,11 +155,7 @@
                 <input type="text" name="folder_name" placeholder="新建文件夹名" class="input-text">
                 <button type="submit" class="btn">新建文件夹</button>
             </form>
-            <form action="{{ url_for('rmdir') }}" method="post" style="display:inline;">
-                <input type="hidden" name="dir" value="{{ current_dir }}">
-                <input type="text" name="folder_name" placeholder="删除空文件夹名" class="input-text">
-                <button type="submit" class="btn">删除文件夹</button>
-            </form>
+            <!-- 删除文件夹功能表单已移除 -->
         </div>
         <hr>
         <!-- 批量操作按钮 -->
@@ -168,14 +164,21 @@
                 <input type="hidden" name="dir" value="{{ current_dir }}">
                 <button type="submit" class="btn primary">批量下载</button>
             </form>
-            <form id="batch_delete_form" action="{{ url_for('delete_selected') }}" method="post" style="display:inline;" onsubmit="return confirm('确认批量删除选中的文件吗？');">
+            <form id="batch_delete_form" action="{{ url_for('delete_selected') }}" method="post" style="display:inline;" onsubmit="return confirm('确认批量删除选中的文件或文件夹吗？');">
                 <input type="hidden" name="dir" value="{{ current_dir }}">
                 <input type="text" name="owner_user" placeholder="用户名(个人文件必填, 共享不填)" class="input-text short-input">
                 <button type="submit" class="btn danger">批量删除</button>
             </form>
             <form id="batch_move_form" action="{{ url_for('move_selected') }}" method="post" style="display:inline;">
                 <input type="hidden" name="dir" value="{{ current_dir }}">
-                <input type="text" name="target_dir" placeholder="目标目录" class="input-text short-input" required>
+                <select name="target_dir" class="input-text short-input" required>
+                    <option value="">根目录</option>
+                    {% for d in all_dirs %}
+                    {% if d != '' %}
+                    <option value="{{ d }}">{{ d }}</option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
                 <button type="submit" class="btn secondary">批量移动</button>
             </form>
         </div>
@@ -185,7 +188,7 @@
             {% for folder in folders %}
                 <li class="file-item" data-filename="{{ folder }}">
                     [DIR] {{ folder }}
-                    <!-- 打开文件夹的按钮 -->
+                    <!-- 打开文件夹按钮 -->
                     <a href="{{ url_for('index', dir=(current_dir ~ '/' ~ folder if current_dir else folder)) }}" class="btn open-button">打开</a>
                     <button class="btn rename-button" onclick="showRenameForm(event, '{{ folder }}', 'folder')">重命名</button>
                     <form class="rename-form" action="{{ url_for('rename_item') }}" method="post" style="display:none;">
@@ -195,6 +198,11 @@
                         <input type="text" name="new_name" placeholder="新名称" class="input-text short-input" pattern="[A-Za-z0-9._-]+" required>
                         <button type="submit" class="btn">确定</button>
                         <button type="button" class="btn" onclick="cancelRename(event)">取消</button>
+                    </form>
+                    <!-- 文件夹删除按钮 -->
+                    <form action="{{ url_for('delete_item', filepath=(current_dir+'/'+folder if current_dir else folder)) }}" method="post" style="display:inline;" onsubmit="return confirmDelete();">
+                        <!-- 文件夹无所有者概念，直接删除 -->
+                        <button type="submit" class="btn danger">删除</button>
                     </form>
                 </li>
             {% endfor %}
@@ -226,7 +234,7 @@
                         {% endif %}
                         <small>上传: {{ f.upload_time }} | 编辑: {{ f.edit_time }}</small><br>
                         <a class="btn" href="{{ url_for('download_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}">下载</a>
-                        <form action="{{ url_for('delete_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}" method="post" style="display:inline;" onsubmit="return confirmDelete();">
+                        <form action="{{ url_for('delete_item', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}" method="post" style="display:inline;" onsubmit="return confirmDelete();">
                             {% if f.owner != 'shared' %}
                             <input type="text" name="owner_user" placeholder="用户名" class="input-text short-input" required>
                             {% endif %}
