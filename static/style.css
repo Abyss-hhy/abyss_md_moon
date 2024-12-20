@@ -1,21 +1,35 @@
-body {
+/* 重置默认样式 */
+* {
     margin: 0;
-    font-family: "Microsoft YaHei", Arial, sans-serif;
-    background: #f9f9f9;
-    font-size: 32px; /* 将字体加大一倍 */
-    color: #333;
+    padding: 0;
+    box-sizing: border-box;
 }
 
+body, html {
+    height: 100%;
+    font-family: "Microsoft YaHei", Arial, sans-serif;
+    background: #f9f9f9;
+    color: #333;
+    font-size: 32px; /* 整体字体加大到32px */
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header 样式 */
 .header {
     background: #333;
     color: #fff;
     display: flex;
     align-items: center;
-    padding: 20px; /* 适当放大间距，保持比例 */
+    padding: 20px;
+    flex: 0 0 auto; /* 固定高度 */
 }
 
 .header .logo {
-    font-size: 40px; /* logo再大一些 */
+    font-size: 40px;
     font-weight: bold;
     margin-right: 40px;
 }
@@ -66,13 +80,14 @@ body {
     background: #45a049;
 }
 
+/* Main 内容区域 */
 .main {
     display: flex;
-    height: calc(100vh - 140px);
-    box-sizing: border-box;
-    font-size:32px;
+    flex: 1 1 auto; /* 占据剩余空间 */
+    overflow: hidden; /* 防止溢出 */
 }
 
+/* 左侧文件管理区 */
 .left-panel {
     width: 40%;
     border-right: 1px solid #ccc;
@@ -82,6 +97,7 @@ body {
     font-size:32px;
 }
 
+/* 右侧内容展示区 */
 .right-panel {
     width: 60%;
     padding: 20px;
@@ -90,6 +106,7 @@ body {
     font-size:32px;
 }
 
+/* 文件夹和文件列表 */
 .folder-list ul, .file-list ul {
     list-style: none;
     padding: 0;
@@ -117,6 +134,7 @@ body {
     text-decoration: underline;
 }
 
+/* 输入框样式 */
 .input-text {
     padding: 12px;
     border: 1px solid #ccc;
@@ -129,9 +147,10 @@ body {
     width: 120px;
 }
 
+/* 文本区域样式 */
 .textarea {
     width: 100%;
-    height: 600px;
+    height: 60vh; /* 使用视口高度单位，使其响应式 */
     font-family: Consolas, "Courier New", monospace;
     padding: 20px;
     border: 1px solid #ccc;
@@ -139,6 +158,7 @@ body {
     font-size:32px;
 }
 
+/* Markdown 内容展示 */
 .md-content {
     background: #fefefe;
     border: 1px solid #ccc;
@@ -148,23 +168,26 @@ body {
     font-family: Consolas, "Courier New", monospace;
     border-radius: 8px;
     font-size:32px;
+    max-height: 60vh; /* 限制最大高度 */
+    overflow-y: auto;
 }
 
+/* Footer 样式 */
 .footer {
     text-align: center;
     font-size: 24px;
     padding: 20px;
     background: #f0f0f0;
     color: #333;
+    flex: 0 0 auto; /* 固定高度 */
 }
 
-/* 上传页面的样式居中显示 */
+/* 上传页面居中样式 */
 .upload-page-wrapper {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: calc(100vh - 140px);
-    box-sizing: border-box;
+    flex: 1 1 auto; /* 占据剩余空间 */
 }
 
 .upload-container {
@@ -228,4 +251,19 @@ body {
 
 .upload-container a:hover {
     text-decoration: underline;
+}
+
+/* Flash 消息样式 */
+.flashes {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+}
+
+.flashes li {
+    background: #ffdddd;
+    border-left: 6px solid #f44336;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
 }

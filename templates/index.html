@@ -37,6 +37,10 @@
             document.getElementById('view_mode').style.display = 'block';
             isEditing = false;
         }
+
+        function confirmDelete() {
+            return confirm('确认删除吗？');
+        }
     </script>
 </head>
 <body>
@@ -89,9 +93,14 @@
             {% for f in files %}
                 <li>
                     <a href="?dir={{ current_dir }}&selected={{ f.name }}">{{ f.original_name }}</a><br>
+                    {% if f.owner == 'shared' %}
+                        <small>类型：共享文件</small><br>
+                    {% else %}
+                        <small>类型：个人文件</small><br>
+                    {% endif %}
                     <small>上传: {{ f.upload_time }} | 编辑: {{ f.edit_time }}</small><br>
                     <a class="btn" href="{{ url_for('download_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}">下载</a>
-                    <form action="{{ url_for('delete_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}" method="post" style="display:inline;">
+                    <form action="{{ url_for('delete_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}" method="post" style="display:inline;" onsubmit="return confirmDelete();">
                         {% if f.owner != 'shared' %}
                         <input type="text" name="owner_user" placeholder="用户名" class="input-text short-input" required>
                         {% endif %}
@@ -115,29 +124,48 @@
         {% if selected_file %}
             <h3>{{ selected_file_original_name }}</h3>
             <hr>
-            <div id="view_mode" style="display:block;">
-                <div class="md-content">
-                    <pre>{{ selected_file_content }}</pre>
-                </div>
-                <br>
-                <button class="btn primary" onclick="startEditing()">编辑</button>
-            </div>
-            <div id="edit_mode" style="display:none;">
-                <form method="post" action="{{ url_for('update_file') }}">
+            {% if need_auth_to_view %}
+                <!-- 需要输入用户名才能查看内容 -->
+                <p>这是个人文件，请输入用户名查看：</p>
+                <form method="get" action="">
+                    <!-- 保留当前dir和selected参数 -->
                     <input type="hidden" name="dir" value="{{ current_dir }}">
-                    <input type="hidden" name="filename" value="{{ selected_file }}">
-                    {% if selected_file_owner != 'shared' %}
-                        <p>这是个人文件，请输入用户名：</p>
-                        <input type="text" name="owner_user" class="input-text" placeholder="用户名" required>
-                    {% else %}
-                        <input type="hidden" name="owner_user" value="shared">
-                    {% endif %}
-                    <textarea name="content" class="textarea">{{ selected_file_content }}</textarea>
-                    <br>
-                    <button type="submit" class="btn primary">保存</button>
-                    <button type="button" class="btn" onclick="cancelEditing()">取消</button>
+                    <input type="hidden" name="selected" value="{{ selected_file }}">
+                    <input type="text" name="auth_user" class="input-text" placeholder="用户名" required>
+                    <button type="submit" class="btn primary">确认</button>
                 </form>
-            </div>
+            {% else %}
+                <!-- 可直接查看内容 -->
+                <div id="view_mode" style="display:block;">
+                    <div class="md-content">
+                        <pre>{{ selected_file_content }}</pre>
+                    </div>
+                    <br>
+                    {% if selected_file_owner == 'shared' %}
+                        <!-- 共享文件编辑无需用户名 -->
+                        <button class="btn primary" onclick="startEditing()">编辑</button>
+                    {% else %}
+                        <!-- 个人文件编辑需再次输入用户名 -->
+                        <button class="btn primary" onclick="startEditing()">编辑</button>
+                    {% endif %}
+                </div>
+                <div id="edit_mode" style="display:none;">
+                    <form method="post" action="{{ url_for('update_file') }}">
+                        <input type="hidden" name="dir" value="{{ current_dir }}">
+                        <input type="hidden" name="filename" value="{{ selected_file }}">
+                        {% if selected_file_owner != 'shared' %}
+                            <p>这是个人文件，请输入用户名：</p>
+                            <input type="text" name="owner_user" class="input-text" placeholder="用户名" required>
+                        {% else %}
+                            <input type="hidden" name="owner_user" value="shared">
+                        {% endif %}
+                        <textarea name="content" class="textarea">{{ selected_file_content }}</textarea>
+                        <br>
+                        <button type="submit" class="btn primary">保存</button>
+                        <button type="button" class="btn" onclick="cancelEditing()">取消</button>
+                    </form>
+                </div>
+            {% endif %}
         {% else %}
             <p>请选择一个MD文件以查看和编辑内容。</p>
         {% endif %}
