@@ -114,8 +114,8 @@
 <div class="main">
     <div class="left-panel">
         <div class="folder-nav">
-            {% if parent_dir != '' %}
-            <a href="{{ url_for('index', dir=parent_dir) }}" class="btn">返回上级</a>
+            {% if current_dir != '' %}
+            <a href="{{ url_for('index', dir=parent_dir) }}" class="btn back-button">返回上级目录</a>
             {% endif %}
         </div>
         <div class="folder-ops">
@@ -161,22 +161,26 @@
         <div class="file-list">
             <ul>
             {% for f in files %}
-                <li>
-                    <input type="checkbox" name="selected_files" value="{{ f.name }}">
-                    <a href="?dir={{ current_dir }}&selected={{ f.name }}">{{ f.original_name }}</a><br>
-                    {% if f.owner == 'shared' %}
-                        <small>类型：共享文件</small><br>
-                    {% else %}
-                        <small>类型：个人文件</small><br>
-                    {% endif %}
-                    <small>上传: {{ f.upload_time }} | 编辑: {{ f.edit_time }}</small><br>
-                    <a class="btn" href="{{ url_for('download_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}">下载</a>
-                    <form action="{{ url_for('delete_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}" method="post" style="display:inline;" onsubmit="return confirmDelete();">
-                        {% if f.owner != 'shared' %}
-                        <input type="text" name="owner_user" placeholder="用户名" class="input-text short-input" required>
+                <li class="file-item">
+                    <div class="file-info">
+                        <a href="?dir={{ current_dir }}&selected={{ f.name }}">{{ f.original_name }}</a><br>
+                        {% if f.owner == 'shared' %}
+                            <small>类型：共享文件</small><br>
+                        {% else %}
+                            <small>类型：个人文件</small><br>
                         {% endif %}
-                        <button type="submit" class="btn danger">删除</button>
-                    </form>
+                        <small>上传: {{ f.upload_time }} | 编辑: {{ f.edit_time }}</small><br>
+                        <a class="btn" href="{{ url_for('download_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}">下载</a>
+                        <form action="{{ url_for('delete_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}" method="post" style="display:inline;" onsubmit="return confirmDelete();">
+                            {% if f.owner != 'shared' %}
+                            <input type="text" name="owner_user" placeholder="用户名" class="input-text short-input" required>
+                            {% endif %}
+                            <button type="submit" class="btn danger">删除</button>
+                        </form>
+                    </div>
+                    <div class="file-checkbox">
+                        <input type="checkbox" name="selected_files" value="{{ f.name }}">
+                    </div>
                 </li>
             {% endfor %}
             </ul>
@@ -245,61 +249,5 @@
 <div class="footer">
     abyss' markdown store - version0.0.1
 </div>
-
-<!-- 批量操作JavaScript -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // 批量下载
-        document.getElementById('batch_download_form').addEventListener('submit', function(e) {
-            const selected = document.querySelectorAll('input[name="selected_files"]:checked');
-            if (selected.length === 0) {
-                alert('请至少选择一个文件进行下载。');
-                e.preventDefault();
-                return;
-            }
-            selected.forEach(function(file) {
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'selected_files';
-                hiddenInput.value = file.value;
-                e.target.appendChild(hiddenInput);
-            });
-        });
-
-        // 批量删除
-        document.getElementById('batch_delete_form').addEventListener('submit', function(e) {
-            const selected = document.querySelectorAll('input[name="selected_files"]:checked');
-            if (selected.length === 0) {
-                alert('请至少选择一个文件进行删除。');
-                e.preventDefault();
-                return;
-            }
-            selected.forEach(function(file) {
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'selected_files';
-                hiddenInput.value = file.value;
-                e.target.appendChild(hiddenInput);
-            });
-        });
-
-        // 批量移动
-        document.getElementById('batch_move_form').addEventListener('submit', function(e) {
-            const selected = document.querySelectorAll('input[name="selected_files"]:checked');
-            if (selected.length === 0) {
-                alert('请至少选择一个文件进行移动。');
-                e.preventDefault();
-                return;
-            }
-            selected.forEach(function(file) {
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'selected_files';
-                hiddenInput.value = file.value;
-                e.target.appendChild(hiddenInput);
-            });
-        });
-    });
-</script>
 </body>
 </html>
