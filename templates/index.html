@@ -2,7 +2,7 @@
 <html lang="zh-cn">
 <head>
     <meta charset="UTF-8">
-    <!-- 新增 viewport 让移动浏览器可按设备宽度缩放 -->
+    <!-- 让移动端正确缩放 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Markdown Store</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -27,6 +27,7 @@
             window.location.search = urlParams.toString();
         }
 
+        // 开始编辑
         function startEditing() {
             const contentDiv = document.getElementById('file_content_view');
             if (contentDiv) {
@@ -37,6 +38,7 @@
             document.getElementById('edit_form').style.display = 'flex';
         }
 
+        // 取消编辑
         function cancelEditing() {
             const contentDiv = document.getElementById('file_content_view');
             if (contentDiv) {
@@ -52,6 +54,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // 批量操作
             function attachBatchHandler(formId) {
                 const form = document.getElementById(formId);
                 if(!form) return;
@@ -76,6 +79,7 @@
             attachBatchHandler('batch_delete_form');
             attachBatchHandler('batch_move_form');
 
+            // 单击文件行选中
             document.querySelectorAll('.file-item').forEach(function(item) {
                 item.addEventListener('click', function(e) {
                     if (e.target.closest('.rename-button')
@@ -105,6 +109,7 @@
     </script>
 </head>
 <body>
+<!-- 头部布局：网站名->排序->搜索居中->新建->上传 -->
 <div class="header">
     <div class="logo">abyss' markdown store</div>
     <div class="sort-container">
@@ -122,6 +127,7 @@
 </div>
 
 <div class="main">
+    <!-- 左侧面板(1/4) -->
     <div class="left-panel">
         <div class="folder-nav">
             {% if current_dir != '' %}
@@ -220,6 +226,7 @@
         </div>
     </div>
 
+    <!-- 右侧面板 (3/4) -->
     <div class="right-panel">
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -232,7 +239,6 @@
         {% endwith %}
 
         {% if is_new_file %}
-            <!-- 新建文件 -->
             <div class="top-line">
                 <div class="file-title">新建MD文件</div>
             </div>
@@ -253,7 +259,6 @@
                         <input type="text" name="owner_user" class="input-text short-input" style="margin-bottom:20px;">
 
                         <label for="content">内容:</label>
-                        <!-- 填满剩余空间到底部 -->
                         <textarea name="content" class="textarea" style="flex:1 1 auto;"></textarea>
 
                         <div style="margin-top:20px;">
@@ -302,7 +307,6 @@
                         {% else %}
                             <input type="hidden" name="owner_user" value="shared">
                         {% endif %}
-                        <!-- 让已有内容显示在文本域中 -->
                         <textarea name="content" class="textarea" style="flex:1 1 auto;">{{ selected_file_content }}</textarea>
                     </form>
                 </div>
@@ -314,7 +318,7 @@
 </div>
 
 <div class="footer">
-    abyss' markdown store - version0.0.1
+    abyss' markdown store - version1.0.0
 </div>
 </body>
 </html>
