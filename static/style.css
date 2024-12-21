@@ -16,10 +16,10 @@ body, html {
 body {
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* 不出现浏览器滚动条，由内部面板滚动 */
+    overflow: hidden; /* 不出现全局滚动条，左右面板各自滚动 */
 }
 
-/* Header */
+/* Header: 一行展示: 网站名->排序->搜索(居中)->新建->上传 */
 .header {
     background: #333;
     color: #fff;
@@ -27,25 +27,22 @@ body {
     align-items: center;
     padding: 20px;
     flex: 0 0 auto;
-    justify-content: flex-start; /* 一行从左到右 */
+    justify-content: flex-start;
 }
 
 .header .logo {
     font-size: 40px;
     font-weight: bold;
-    margin-right: 40px; /* 与后面保持间隔 */
+    margin-right: 40px;
 }
 
-/* 排序容器 */
 .sort-container {
-    margin-right: 40px; /* 与搜索居中保持一定距离 */
-    display: inline-block;
     font-size:32px;
+    margin-right: 40px;
 }
 
-/* 搜索容器居中(此处可根据需求再做微调) */
 .search-container {
-    margin-right: auto; /* 将其余按钮推到最右 */
+    margin-right: auto;
     display: flex;
     align-items: center;
 }
@@ -58,12 +55,7 @@ body {
     margin-right: 10px;
 }
 
-.header-right {
-    display: flex;
-    align-items: center;
-}
-
-/* 按钮通用样式 */
+/* 新建/上传在最右 */
 .btn {
     background: #eee;
     border: 1px solid #ccc;
@@ -72,7 +64,7 @@ body {
     text-decoration: none;
     color: #333;
     cursor: pointer;
-    margin-left: 20px; /* 与之前元素保持间距 */
+    margin-left: 20px;
     font-size: 32px;
 }
 
@@ -120,7 +112,7 @@ body {
     background: #e68a00;
 }
 
-/* 主体区域：左右面板各自滚动 */
+/* 主区：左右面板 */
 .main {
     flex: 1 1 auto;
     display: flex;
@@ -136,9 +128,9 @@ body {
     flex: 0 0 auto;
 }
 
-/* 左侧面板 */
+/* 左侧(1) */
 .left-panel {
-    width: 40%;
+    width: 25%;
     border-right: 1px solid #ccc;
     padding: 20px;
     overflow: auto;
@@ -225,15 +217,15 @@ body {
     width: 200px;
 }
 
-/* 右侧面板 */
+/* 右侧(3) */
 .right-panel {
-    width: 60%;
+    width: 75%;
     padding: 20px;
     overflow: auto;
     background: #fff;
     font-size:32px;
     display: flex;
-    flex-direction: column; /* 让里面的元素可自适应高度 */
+    flex-direction: column;
 }
 
 .top-line {
@@ -252,7 +244,7 @@ body {
     flex: 0 0 auto;
 }
 
-/* Markdown内容显示 */
+/* Markdown内容显示区 */
 .md-content {
     background: #fefefe;
     border: 1px solid #ccc;
@@ -272,7 +264,6 @@ body {
     margin-top: 10px;
 }
 
-/* 文本编辑框可随容器延伸到footer上沿 */
 .textarea {
     width: 100%;
     padding: 20px;
@@ -280,6 +271,7 @@ body {
     border-radius: 8px;
     font-size:32px;
     font-family: Consolas, "Courier New", monospace;
+    /* 让文本域随容器高度扩展 */
 }
 
 /* Flash消息 */
@@ -297,62 +289,5 @@ body {
     border-radius: 4px;
 }
 
-/* 上传页面：居中放大 */
-.upload-page-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex: 1 1 auto;
-    font-size: 36px;
-}
-
-.upload-container {
-    max-width: 900px;
-    width: 100%;
-    background: #fff;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 40px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-/* 这里调大字体等 */
-.upload-container h1 {
-    font-size: 48px;
-    margin-bottom: 40px;
-    text-align: center;
-}
-
-.upload-container label {
-    font-size:36px;
-    margin: 20px 0 10px 0;
-    display:block;
-}
-
-.upload-container input[type="file"] {
-    margin-bottom: 40px;
-    font-size:36px;
-}
-
-.upload-container .owner-type {
-    margin: 20px 0;
-    font-size:36px;
-    display: flex;
-    align-items:center;
-}
-
-.upload-container .owner-type input {
-    margin-right: 10px;
-    transform: scale(1.5);
-    margin-top: 8px;
-}
-
-.upload-container .owner-type label {
-    margin-right:40px;
-}
-
-.upload-container button {
-    font-size:36px;
-    padding: 18px 36px;
-    margin-top:20px;
-}
+/* 若 upload.html 无改动，这里不重复；若需则保留 */
+/* .upload-page-wrapper, .upload-container, .owner-type { ... } */
