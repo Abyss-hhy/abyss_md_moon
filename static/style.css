@@ -234,6 +234,22 @@ body {
     font-size:32px;
 }
 
+.top-line {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.top-line .file-title {
+    flex: 1;
+    font-size: 36px;
+    font-weight: bold;
+}
+
+.top-line .file-actions {
+    flex: 0 0 auto;
+}
+
 .footer {
     text-align: center;
     font-size: 24px;

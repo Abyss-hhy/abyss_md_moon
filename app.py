@@ -7,6 +7,7 @@ import zipfile
 import io
 import re
 import shutil
+import markdown
 
 app = Flask(__name__)
 app.secret_key = 'some_secret_key'
@@ -44,11 +45,8 @@ def list_all_dirs():
     for root, dirs, files in os.walk(UPLOAD_FOLDER):
         rel_path = os.path.relpath(root, UPLOAD_FOLDER)
         if rel_path == '.':
-            # 代表UPLOAD_FOLDER本身，用'/'表示根目录
             dir_set.add('/')
         else:
-            # 添加子目录路径（用相对路径表示）
-            # 将反斜线改为正斜线统一
             d_path = rel_path.replace('\\', '/')
             dir_set.add(d_path)
             for d in dirs:
@@ -124,6 +122,7 @@ def index():
     selected_file_owner = 'shared'
     selected_file_original_name = ''
     need_auth_to_view = False
+    selected_file_html = ''
     if selected:
         selected_file_info = next((f for f in files if f['name'] == selected), None)
         if selected_file_info:
@@ -137,12 +136,14 @@ def index():
                     if os.path.exists(selected_full_path):
                         with open(selected_full_path, 'r', encoding='utf-8') as f:
                             selected_file_content = f.read()
+                        selected_file_html = markdown.markdown(selected_file_content)
                 else:
                     need_auth_to_view = True
             else:
                 if os.path.exists(selected_full_path):
                     with open(selected_full_path, 'r', encoding='utf-8') as f:
                         selected_file_content = f.read()
+                    selected_file_html = markdown.markdown(selected_file_content)
 
     all_dirs = list_all_dirs()
 
@@ -159,7 +160,8 @@ def index():
                            selected_file_owner=selected_file_owner,
                            selected_file_original_name=selected_file_original_name,
                            need_auth_to_view=need_auth_to_view,
-                           all_dirs=all_dirs)
+                           all_dirs=all_dirs,
+                           selected_file_html=selected_file_html)
 
 @app.route('/upload')
 def upload_page():
@@ -236,14 +238,12 @@ def delete_selected():
     for name in selected_files:
         target_path = os.path.join(UPLOAD_FOLDER, dir_path, name)
         if os.path.isdir(target_path):
-            # 文件夹
             if os.path.exists(target_path):
                 shutil.rmtree(target_path)
                 flash(f"文件夹 '{name}' 已删除。")
             else:
                 flash(f"文件夹 '{name}' 不存在或无法删除。")
         else:
-            # 文件
             file_meta = metadata.get(name, {})
             file_owner = file_meta.get('owner', 'shared')
             if file_owner != 'shared' and owner_user != file_owner:
@@ -270,8 +270,6 @@ def move_selected():
         flash("未选择任何文件进行移动。")
         return redirect(url_for('index', dir=current_dir))
 
-    # target_dir为'/'表示根目录
-    # 如果target_dir为None或空，则不成立，因为select有required属性
     if target_dir is None:
         flash("未选择目标目录。")
         return redirect(url_for('index', dir=current_dir))
@@ -280,7 +278,6 @@ def move_selected():
     for name in selected_files:
         source_path = os.path.join(UPLOAD_FOLDER, current_dir, name)
         if target_dir == '/':
-            # 根目录
             dest_path = os.path.join(UPLOAD_FOLDER, name)
         else:
             dest_path = os.path.join(UPLOAD_FOLDER, target_dir.strip('/'), name)
@@ -290,11 +287,9 @@ def move_selected():
             continue
 
         if os.path.isdir(source_path):
-            # 文件夹视为共享
             shutil.move(source_path, dest_path)
             flash(f"文件夹 '{name}' 已移动到 '{'根目录' if target_dir == '/' else target_dir}'。")
         else:
-            # 文件
             if name not in metadata:
                 flash(f"元数据中未找到文件 '{name}'，无法移动。")
                 continue
