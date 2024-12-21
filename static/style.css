@@ -16,10 +16,10 @@ body, html {
 body {
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* 不出现全局滚动条，左右面板各自滚动 */
+    overflow: hidden;
 }
 
-/* Header: 一行展示: 网站名->排序->搜索(居中)->新建->上传 */
+/* Header: 一行依次: 网站名->排序->搜索(居中)->新建->上传 */
 .header {
     background: #333;
     color: #fff;
@@ -55,7 +55,7 @@ body {
     margin-right: 10px;
 }
 
-/* 新建/上传在最右 */
+/* 新建/上传按钮在最右 */
 .btn {
     background: #eee;
     border: 1px solid #ccc;
@@ -112,7 +112,7 @@ body {
     background: #e68a00;
 }
 
-/* 主区：左右面板 */
+/* 主体：左右面板 */
 .main {
     flex: 1 1 auto;
     display: flex;
@@ -128,7 +128,7 @@ body {
     flex: 0 0 auto;
 }
 
-/* 左侧(1) */
+/* 左面板 占 25% (1/4) */
 .left-panel {
     width: 25%;
     border-right: 1px solid #ccc;
@@ -217,7 +217,7 @@ body {
     width: 200px;
 }
 
-/* 右侧(3) */
+/* 右面板 占 75% */
 .right-panel {
     width: 75%;
     padding: 20px;
@@ -244,7 +244,7 @@ body {
     flex: 0 0 auto;
 }
 
-/* Markdown内容显示区 */
+/* 文件内容渲染区 */
 .md-content {
     background: #fefefe;
     border: 1px solid #ccc;
@@ -271,7 +271,6 @@ body {
     border-radius: 8px;
     font-size:32px;
     font-family: Consolas, "Courier New", monospace;
-    /* 让文本域随容器高度扩展 */
 }
 
 /* Flash消息 */
@@ -289,5 +288,61 @@ body {
     border-radius: 4px;
 }
 
-/* 若 upload.html 无改动，这里不重复；若需则保留 */
-/* .upload-page-wrapper, .upload-container, .owner-type { ... } */
+/* 媒体查询：当屏幕宽度小于2000px时执行，手机端自适应 */
+@media (max-width: 2000px) {
+    /* 主体从左右布局变为上下布局 */
+    .main {
+        flex-direction: column;
+    }
+    /* 两面板都100%宽 */
+    .left-panel, .right-panel {
+        width: 100%;
+        margin: 0;
+        padding: 20px;
+    }
+    /* header中元素可换行或者缩小 */
+    .header {
+        flex-wrap: wrap;
+        padding: 10px;
+    }
+    .header .logo {
+        font-size: 30px;
+        margin-right: 20px;
+        margin-bottom: 10px;
+    }
+    .sort-container,
+    .search-container {
+        margin-right: 20px;
+        margin-bottom: 10px;
+    }
+    .btn {
+        margin-left: 10px;
+        font-size: 28px;
+        padding: 8px 16px;
+    }
+    .search-container input {
+        font-size: 28px;
+        padding: 8px;
+    }
+    .back-button {
+        font-size: 28px;
+    }
+    /* 左右面板合并成上下，防止溢出 */
+    .left-panel {
+        max-height: 40vh; /* 可自定义，上下各一半可视区 */
+    }
+    .right-panel {
+        max-height: 60vh;
+    }
+    .md-content {
+        font-size:28px;
+    }
+    .input-text {
+        font-size:28px;
+    }
+    .textarea {
+        font-size:28px;
+    }
+}
+
+/* 若upload.html中无变化，此处不必新增；若需则可加相应@media query */
