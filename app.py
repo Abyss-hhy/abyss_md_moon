@@ -39,19 +39,22 @@ def is_valid_name(name):
     return bool(pattern.match(name))
 
 def list_all_dirs():
-    # 列出upload_folder内所有子目录的相对路径，用于批量移动下拉框
-    dir_list = ['']  # 根目录对应空字符串
+    # 列出upload_folder内所有子目录，使用'/'表示根目录
+    dir_set = set()
     for root, dirs, files in os.walk(UPLOAD_FOLDER):
-        # root是绝对路径，需要转换成相对UPLOAD_FOLDER的路径
         rel_path = os.path.relpath(root, UPLOAD_FOLDER)
-        # 第一次循环root就是UPLOAD_FOLDER本身，rel_path会是'.'，略过
         if rel_path == '.':
-            rel_path = ''
-        for d in dirs:
-            d_path = os.path.join(rel_path, d).strip('./\\')
-            dir_list.append(d_path)
-    # 去重并排序
-    dir_list = list(set(dir_list))
+            # 代表UPLOAD_FOLDER本身，用'/'表示根目录
+            dir_set.add('/')
+        else:
+            # 添加子目录路径（用相对路径表示）
+            # 将反斜线改为正斜线统一
+            d_path = rel_path.replace('\\', '/')
+            dir_set.add(d_path)
+            for d in dirs:
+                sub_path = os.path.join(d_path, d).replace('\\', '/')
+                dir_set.add(sub_path)
+    dir_list = list(dir_set)
     dir_list.sort()
     return dir_list
 
@@ -141,7 +144,6 @@ def index():
                     with open(selected_full_path, 'r', encoding='utf-8') as f:
                         selected_file_content = f.read()
 
-    # 获取所有目录列表，用于批量移动选择框
     all_dirs = list_all_dirs()
 
     return render_template('index.html',
@@ -197,7 +199,7 @@ def upload_file():
 def download_file(filepath):
     full_path = os.path.join(UPLOAD_FOLDER, filepath)
     if os.path.exists(full_path):
-        return send_file(full_path, as_attachment=True)
+        return send_file(full_path, download_name='selected_files.zip', as_attachment=True)
     else:
         flash("文件不存在")
         return redirect(url_for('index'))
@@ -220,7 +222,6 @@ def download_selected():
     memory_file.seek(0)
     return send_file(memory_file, download_name='selected_files.zip', as_attachment=True)
 
-
 @app.route('/delete_selected', methods=['POST'])
 def delete_selected():
     selected_files = request.form.getlist('selected_files')
@@ -235,7 +236,7 @@ def delete_selected():
     for name in selected_files:
         target_path = os.path.join(UPLOAD_FOLDER, dir_path, name)
         if os.path.isdir(target_path):
-            # 文件夹视为共享，不需用户名
+            # 文件夹
             if os.path.exists(target_path):
                 shutil.rmtree(target_path)
                 flash(f"文件夹 '{name}' 已删除。")
@@ -262,32 +263,38 @@ def delete_selected():
 @app.route('/move_selected', methods=['POST'])
 def move_selected():
     selected_files = request.form.getlist('selected_files')
-    target_dir = request.form.get('target_dir', '').strip()
+    target_dir = request.form.get('target_dir', None)
     current_dir = request.form.get('dir', '').strip()
 
     if not selected_files:
         flash("未选择任何文件进行移动。")
         return redirect(url_for('index', dir=current_dir))
 
-    # target_dir为空表示根目录
+    # target_dir为'/'表示根目录
+    # 如果target_dir为None或空，则不成立，因为select有required属性
+    if target_dir is None:
+        flash("未选择目标目录。")
+        return redirect(url_for('index', dir=current_dir))
+
     metadata = load_metadata()
     for name in selected_files:
         source_path = os.path.join(UPLOAD_FOLDER, current_dir, name)
-        if not target_dir:
+        if target_dir == '/':
+            # 根目录
             dest_path = os.path.join(UPLOAD_FOLDER, name)
         else:
-            dest_path = os.path.join(UPLOAD_FOLDER, target_dir, name)
+            dest_path = os.path.join(UPLOAD_FOLDER, target_dir.strip('/'), name)
+
+        if os.path.exists(dest_path):
+            flash(f"目标位置已存在同名文件或文件夹 '{name}'，无法移动。")
+            continue
 
         if os.path.isdir(source_path):
-            # 文件夹移动
             # 文件夹视为共享
-            if os.path.exists(dest_path):
-                flash(f"目标位置已存在同名文件夹 '{name}'，无法移动。")
-                continue
             shutil.move(source_path, dest_path)
-            flash(f"文件夹 '{name}' 已移动到 '{target_dir if target_dir else '根目录'}'。")
+            flash(f"文件夹 '{name}' 已移动到 '{'根目录' if target_dir == '/' else target_dir}'。")
         else:
-            # 文件移动
+            # 文件
             if name not in metadata:
                 flash(f"元数据中未找到文件 '{name}'，无法移动。")
                 continue
@@ -295,14 +302,11 @@ def move_selected():
             if file_owner != 'shared':
                 flash(f"文件 '{metadata[name].get('original_name', name)}' 是个人文件，无法批量移动。")
                 continue
-            if os.path.exists(dest_path):
-                flash(f"目标位置已存在同名文件 '{name}'，无法移动。")
-                continue
             if os.path.exists(source_path) and os.path.isfile(source_path):
-                os.rename(source_path, dest_path)
+                shutil.move(source_path, dest_path)
                 metadata[name]['upload_time'] = str(int(time.time()))
                 metadata[name]['edit_time'] = str(int(time.time()))
-                flash(f"文件 '{metadata[name].get('original_name', name)}' 已移动到 '{target_dir if target_dir else '根目录'}'。")
+                flash(f"文件 '{metadata[name].get('original_name', name)}' 已移动到 '{'根目录' if target_dir == '/' else target_dir}'。")
             else:
                 flash(f"文件 '{metadata[name].get('original_name', name)}' 不存在或无法移动。")
 
@@ -345,16 +349,13 @@ def update_file():
 @app.route('/delete_item/<path:filepath>', methods=['POST'])
 def delete_item(filepath):
     full_path = os.path.join(UPLOAD_FOLDER, filepath)
-    # 区分文件还是文件夹
     if os.path.isdir(full_path):
-        # 文件夹，无需用户名验证
         if os.path.exists(full_path):
             shutil.rmtree(full_path)
             flash(f"文件夹 '{os.path.basename(filepath)}' 已删除。")
         else:
             flash("文件夹不存在或无法删除")
     else:
-        # 文件删除逻辑和delete_file类似
         metadata = load_metadata()
         file_meta = metadata.get(os.path.basename(filepath), {})
         file_owner = file_meta.get('owner', 'shared')
@@ -362,6 +363,7 @@ def delete_item(filepath):
         if file_owner != 'shared' and user_input_owner != file_owner:
             flash("用户名不匹配，无权删除此文件")
             return redirect(url_for('index', dir=os.path.dirname(filepath)))
+
         if os.path.exists(full_path) and os.path.isfile(full_path):
             os.remove(full_path)
             if os.path.basename(filepath) in metadata:
@@ -382,8 +384,6 @@ def mkdir():
         if not os.path.exists(new_path):
             os.makedirs(new_path)
     return redirect(url_for('index', dir=current_dir))
-
-# rmdir已移除，不再需要
 
 @app.route('/rename_item', methods=['POST'])
 def rename_item():

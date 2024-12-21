@@ -58,7 +58,7 @@
             document.getElementById('batch_download_form').addEventListener('submit', function(e) {
                 const selectedItems = document.querySelectorAll('.file-item.selected');
                 if (selectedItems.length === 0) {
-                    alert('请至少选择一个文件进行下载。');
+                    alert('请在列表中选择项目');
                     e.preventDefault();
                     return;
                 }
@@ -76,7 +76,7 @@
             document.getElementById('batch_delete_form').addEventListener('submit', function(e) {
                 const selectedItems = document.querySelectorAll('.file-item.selected');
                 if (selectedItems.length === 0) {
-                    alert('请至少选择一个文件或文件夹进行删除。');
+                    alert('请在列表中选择项目');
                     e.preventDefault();
                     return;
                 }
@@ -94,7 +94,7 @@
             document.getElementById('batch_move_form').addEventListener('submit', function(e) {
                 const selectedItems = document.querySelectorAll('.file-item.selected');
                 if (selectedItems.length === 0) {
-                    alert('请至少选择一个文件进行移动。');
+                    alert('请在列表中选择项目');
                     e.preventDefault();
                     return;
                 }
@@ -155,7 +155,6 @@
                 <input type="text" name="folder_name" placeholder="新建文件夹名" class="input-text">
                 <button type="submit" class="btn">新建文件夹</button>
             </form>
-            <!-- 删除文件夹功能表单已移除 -->
         </div>
         <hr>
         <!-- 批量操作按钮 -->
@@ -172,9 +171,9 @@
             <form id="batch_move_form" action="{{ url_for('move_selected') }}" method="post" style="display:inline;">
                 <input type="hidden" name="dir" value="{{ current_dir }}">
                 <select name="target_dir" class="input-text short-input" required>
-                    <option value="">根目录</option>
+                    <option value="/">根目录</option>
                     {% for d in all_dirs %}
-                    {% if d != '' %}
+                    {% if d != '/' %}
                     <option value="{{ d }}">{{ d }}</option>
                     {% endif %}
                     {% endfor %}
@@ -188,7 +187,6 @@
             {% for folder in folders %}
                 <li class="file-item" data-filename="{{ folder }}">
                     [DIR] {{ folder }}
-                    <!-- 打开文件夹按钮 -->
                     <a href="{{ url_for('index', dir=(current_dir ~ '/' ~ folder if current_dir else folder)) }}" class="btn open-button">打开</a>
                     <button class="btn rename-button" onclick="showRenameForm(event, '{{ folder }}', 'folder')">重命名</button>
                     <form class="rename-form" action="{{ url_for('rename_item') }}" method="post" style="display:none;">
@@ -199,9 +197,7 @@
                         <button type="submit" class="btn">确定</button>
                         <button type="button" class="btn" onclick="cancelRename(event)">取消</button>
                     </form>
-                    <!-- 文件夹删除按钮 -->
                     <form action="{{ url_for('delete_item', filepath=(current_dir+'/'+folder if current_dir else folder)) }}" method="post" style="display:inline;" onsubmit="return confirmDelete();">
-                        <!-- 文件夹无所有者概念，直接删除 -->
                         <button type="submit" class="btn danger">删除</button>
                     </form>
                 </li>
@@ -215,7 +211,6 @@
                 <li class="file-item" data-filename="{{ f.name }}">
                     <div class="file-info">
                         {{ f.original_name }}
-                        <!-- 打开文件按钮 -->
                         <a href="?dir={{ current_dir }}&selected={{ f.name }}" class="btn open-button">打开</a>
                         <button class="btn rename-button" onclick="showRenameForm(event, '{{ f.name }}', 'file')">重命名</button>
                         <form class="rename-form" action="{{ url_for('rename_item') }}" method="post" style="display:none;">
