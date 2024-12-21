@@ -4,22 +4,22 @@ import json
 import re
 import shutil
 import markdown
+import zipfile
+import io
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash
 
 app = Flask(__name__)
-app.secret_key = 'some_secret_key'  # 可自行修改
+app.secret_key = 'some_secret_key'
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'upload_folder')
 METADATA_FILE = os.path.join(BASE_DIR, 'metadata.json')
 
-# 确保 upload_folder 存在
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 def load_metadata():
-    """加载 metadata.json 中的记录"""
     if os.path.exists(METADATA_FILE):
         with open(METADATA_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -28,26 +28,19 @@ def load_metadata():
     return data
 
 def save_metadata(data):
-    """保存记录到 metadata.json"""
     with open(METADATA_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 def format_timestamp(ts):
-    """将时间戳转成年月日时分秒字符串"""
     return datetime.fromtimestamp(int(ts)).strftime('%Y-%m-%d %H:%M:%S')
 
 def is_valid_name(name):
-    """
-    检验文件名只允许: 字母、数字、下划线、点、横杠
-    不允许中文或其他特殊字符
-    """
+    # 不允许中文，仅限字母、数字、下划线、点和横杠
     pattern = re.compile(r'^[A-Za-z0-9._-]+$')
     return bool(pattern.match(name))
 
 def list_all_dirs():
-    """
-    遍历 upload_folder 下的所有子目录，用 '/' 表示根目录
-    """
+    # 用 '/' 表示根目录
     dir_set = set()
     for root, dirs, files in os.walk(UPLOAD_FOLDER):
         rel_path = os.path.relpath(root, UPLOAD_FOLDER)
@@ -65,9 +58,6 @@ def list_all_dirs():
 
 @app.route('/')
 def index():
-    """
-    主页面
-    """
     current_dir = request.args.get('dir', '')
     sort_by = request.args.get('sort_by', 'name')
     sort_order = request.args.get('order', 'asc')
@@ -88,13 +78,11 @@ def index():
     for item in items:
         full_path = os.path.join(browse_path, item)
         if os.path.isdir(full_path):
-            # 文件夹
             if search_keyword:
                 if search_keyword.lower() not in item.lower():
                     continue
             folders.append(item)
         else:
-            # 只处理 .md 文件
             if item.lower().endswith('.md'):
                 file_meta = metadata.get(item, {})
                 original_name = file_meta.get('original_name', item)
@@ -114,7 +102,6 @@ def index():
                     'owner': owner
                 })
 
-    # 排序
     def sort_key(f):
         if sort_by == 'name':
             return f['original_name'].lower()
@@ -127,7 +114,6 @@ def index():
 
     files = sorted(files, key=sort_key, reverse=(sort_order == 'desc'))
 
-    # 计算父目录
     parent_dir = ''
     if current_dir:
         parts = current_dir.strip('/').split('/')
@@ -138,10 +124,8 @@ def index():
     selected_file_original_name = ''
     need_auth_to_view = False
     selected_file_html = ''
-    # 是否新建文件
     is_new_file = (selected == '__new__')
 
-    # 如果是已有文件
     if selected and not is_new_file:
         selected_file_info = next((f for f in files if f['name'] == selected), None)
         if selected_file_info:
@@ -150,7 +134,6 @@ def index():
             selected_file_original_name = selected_file_info['original_name']
 
             if selected_file_owner != 'shared':
-                # 个人文件需用户名匹配
                 if auth_user == selected_file_owner:
                     if os.path.exists(selected_full_path):
                         with open(selected_full_path, 'r', encoding='utf-8') as f:
@@ -159,7 +142,6 @@ def index():
                 else:
                     need_auth_to_view = True
             else:
-                # 共享文件
                 if os.path.exists(selected_full_path):
                     with open(selected_full_path, 'r', encoding='utf-8') as f:
                         selected_file_content = f.read()
@@ -186,7 +168,6 @@ def index():
 
 @app.route('/create_new_file', methods=['POST'])
 def create_new_file():
-    """保存新建 MD 文件"""
     current_dir = request.form.get('dir', '')
     new_name = request.form.get('new_filename', '').strip()
     owner_type = request.form.get('owner_type', 'shared')
@@ -202,12 +183,10 @@ def create_new_file():
 
     browse_path = os.path.join(UPLOAD_FOLDER, current_dir)
     file_path = os.path.join(browse_path, new_name)
-
     if os.path.exists(file_path):
         flash("已存在同名文件，无法新建")
         return redirect(url_for('index', dir=current_dir, selected='__new__'))
 
-    # 创建并写入内容
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(content)
 
@@ -217,7 +196,7 @@ def create_new_file():
         "original_name": new_name,
         "upload_time": ts,
         "edit_time": ts,
-        "owner": owner_user if owner_type=='personal' and owner_user else 'shared'
+        "owner": owner_user if owner_type == 'personal' and owner_user else 'shared'
     }
     save_metadata(metadata)
 
@@ -226,13 +205,11 @@ def create_new_file():
 
 @app.route('/upload')
 def upload_page():
-    """上传文件页面"""
     current_dir = request.args.get('dir', '')
     return render_template('upload.html', current_dir=current_dir)
 
 @app.route('/upload_file', methods=['POST'])
 def upload_file():
-    """处理用户上传文件"""
     current_dir = request.form.get('dir', '')
     browse_path = os.path.join(UPLOAD_FOLDER, current_dir)
 
@@ -262,17 +239,16 @@ def upload_file():
 
 @app.route('/download/<path:filepath>')
 def download_file(filepath):
-    """单个文件下载"""
     full_path = os.path.join(UPLOAD_FOLDER, filepath)
     if os.path.exists(full_path):
-        return send_file(full_path, download_name='selected_files.zip', as_attachment=True)
+        # 修正：使用 download_name 指定文件名，否则部分旧方式会报错
+        return send_file(full_path, as_attachment=True, download_name=os.path.basename(full_path))
     else:
         flash("文件不存在")
         return redirect(url_for('index'))
 
 @app.route('/download_selected', methods=['POST'])
 def download_selected():
-    """批量下载所选文件"""
     selected_files = request.form.getlist('selected_files')
     dir_path = request.form.get('dir', '')
 
@@ -287,11 +263,11 @@ def download_selected():
             if os.path.isfile(file_path) and file.lower().endswith('.md'):
                 zf.write(file_path, arcname=file)
     memory_file.seek(0)
-    return send_file(memory_file, download_name='selected_files.zip', as_attachment=True)
+    # 修正：使用 download_name
+    return send_file(memory_file, as_attachment=True, download_name='selected_files.zip')
 
 @app.route('/delete_selected', methods=['POST'])
 def delete_selected():
-    """批量删除所选文件或文件夹"""
     selected_files = request.form.getlist('selected_files')
     dir_path = request.form.get('dir', '')
     owner_user = request.form.get('owner_user', '').strip()
@@ -304,14 +280,12 @@ def delete_selected():
     for name in selected_files:
         target_path = os.path.join(UPLOAD_FOLDER, dir_path, name)
         if os.path.isdir(target_path):
-            # 文件夹
             if os.path.exists(target_path):
                 shutil.rmtree(target_path)
                 flash(f"文件夹 '{name}' 已删除。")
             else:
                 flash(f"文件夹 '{name}' 不存在或无法删除。")
         else:
-            # 文件
             file_meta = metadata.get(name, {})
             file_owner = file_meta.get('owner', 'shared')
             if file_owner != 'shared' and owner_user != file_owner:
@@ -330,7 +304,6 @@ def delete_selected():
 
 @app.route('/move_selected', methods=['POST'])
 def move_selected():
-    """批量移动所选文件或文件夹"""
     selected_files = request.form.getlist('selected_files')
     target_dir = request.form.get('target_dir', None)
     current_dir = request.form.get('dir', '').strip()
@@ -379,7 +352,6 @@ def move_selected():
 
 @app.route('/update_file', methods=['POST'])
 def update_file():
-    """更新已有 MD 文件内容"""
     current_dir = request.form.get('dir', '')
     filename = request.form.get('filename', '')
     owner_user_input = request.form.get('owner_user', '').strip()
@@ -401,7 +373,6 @@ def update_file():
             flash("用户名不匹配，无权编辑此文件")
             return redirect(url_for('index', dir=current_dir, selected=filename))
 
-    # 写入新内容
     with open(full_path, 'w', encoding='utf-8') as f:
         f.write(new_content)
 
@@ -414,7 +385,6 @@ def update_file():
 
 @app.route('/delete_item/<path:filepath>', methods=['POST'])
 def delete_item(filepath):
-    """单个文件或文件夹删除"""
     full_path = os.path.join(UPLOAD_FOLDER, filepath)
     if os.path.isdir(full_path):
         if os.path.exists(full_path):
@@ -444,7 +414,6 @@ def delete_item(filepath):
 
 @app.route('/mkdir', methods=['POST'])
 def mkdir():
-    """新建文件夹"""
     current_dir = request.form.get('dir', '')
     folder_name = request.form.get('folder_name', '').strip()
     if folder_name:
@@ -455,14 +424,13 @@ def mkdir():
 
 @app.route('/rename_item', methods=['POST'])
 def rename_item():
-    """重命名文件或文件夹"""
     current_dir = request.form.get('dir', '')
     old_name = request.form.get('old_name', '').strip()
     new_name = request.form.get('new_name', '').strip()
     item_type = request.form.get('type', '')
 
     if not is_valid_name(new_name.replace('.md','')) and item_type=='file':
-        flash("文件名不合法，只能包含字母、数字、下划线、点和横杠。")
+        flash("新名称不合法，只能包含字母、数字、下划线、点和横杠。")
         return redirect(url_for('index', dir=current_dir))
 
     if item_type == 'file' and not new_name.lower().endswith('.md'):

@@ -16,13 +16,14 @@ body, html {
 body {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: hidden; /* 不出现全局滚动条，由内部面板滚动 */
 }
 
-/* Header: 一行依次: 网站名->排序->搜索(居中)->新建->上传 */
+/* 头部：网站名->排序->搜索(居中)->新建->上传 */
 .header {
     background: #333;
     color: #fff;
+    position: relative; /* 让搜索框可用绝对定位居中？ 或者其它方式 */
     display: flex;
     align-items: center;
     padding: 20px;
@@ -41,10 +42,13 @@ body {
     margin-right: 40px;
 }
 
+/* 搜索居中: 让其flex=1, 并 margin:0 auto?
+   也可用 position:absolute; left:50%; transform:translateX(-50%);
+   这里改用一个简单的flex:1加 justify-content */
 .search-container {
-    margin-right: auto;
     display: flex;
     align-items: center;
+    margin: 0 auto; /* 让搜索框在整条header里居中 */
 }
 
 .search-container input {
@@ -55,7 +59,7 @@ body {
     margin-right: 10px;
 }
 
-/* 新建/上传按钮在最右 */
+/* 新建/上传保持最右 */
 .btn {
     background: #eee;
     border: 1px solid #ccc;
@@ -112,7 +116,7 @@ body {
     background: #e68a00;
 }
 
-/* 主体：左右面板 */
+/* 主体：左右面板(1:3) */
 .main {
     flex: 1 1 auto;
     display: flex;
@@ -128,7 +132,7 @@ body {
     flex: 0 0 auto;
 }
 
-/* 左面板 占 25% (1/4) */
+/* 左侧1/4 */
 .left-panel {
     width: 25%;
     border-right: 1px solid #ccc;
@@ -217,7 +221,7 @@ body {
     width: 200px;
 }
 
-/* 右面板 占 75% */
+/* 右侧3/4 */
 .right-panel {
     width: 75%;
     padding: 20px;
@@ -244,7 +248,7 @@ body {
     flex: 0 0 auto;
 }
 
-/* 文件内容渲染区 */
+/* 文件内容区 */
 .md-content {
     background: #fefefe;
     border: 1px solid #ccc;
@@ -273,7 +277,6 @@ body {
     font-family: Consolas, "Courier New", monospace;
 }
 
-/* Flash消息 */
 .flashes {
     list-style: none;
     padding: 0;
@@ -288,51 +291,48 @@ body {
     border-radius: 4px;
 }
 
-/* 媒体查询：当屏幕宽度小于2000px时执行，手机端自适应 */
+/* 小屏(你指定2000px为阈值) -> 上下布局 */
 @media (max-width: 2000px) {
-    /* 主体从左右布局变为上下布局 */
     .main {
         flex-direction: column;
     }
-    /* 两面板都100%宽 */
     .left-panel, .right-panel {
         width: 100%;
         margin: 0;
         padding: 20px;
     }
-    /* header中元素可换行或者缩小 */
     .header {
         flex-wrap: wrap;
         padding: 10px;
+        /* search-container要重置绝对定位 */
+        position: static;
     }
     .header .logo {
         font-size: 30px;
         margin-right: 20px;
         margin-bottom: 10px;
     }
-    .sort-container,
-    .search-container {
+    .sort-container {
         margin-right: 20px;
         margin-bottom: 10px;
+    }
+    .search-container {
+        margin: 0 auto;
+        margin-bottom: 10px;
+        position: static;
+        transform: none;
+    }
+    .search-container input {
+        font-size: 28px;
+        padding: 8px;
     }
     .btn {
         margin-left: 10px;
         font-size: 28px;
         padding: 8px 16px;
     }
-    .search-container input {
-        font-size: 28px;
-        padding: 8px;
-    }
     .back-button {
         font-size: 28px;
-    }
-    /* 左右面板合并成上下，防止溢出 */
-    .left-panel {
-        max-height: 40vh; /* 可自定义，上下各一半可视区 */
-    }
-    .right-panel {
-        max-height: 60vh;
     }
     .md-content {
         font-size:28px;
@@ -343,6 +343,64 @@ body {
     .textarea {
         font-size:28px;
     }
+    .left-panel {
+        max-height: 40vh;
+    }
+    .right-panel {
+        max-height: 60vh;
+    }
 }
 
-/* 若upload.html中无变化，此处不必新增；若需则可加相应@media query */
+/* 上传页面居中，已做对齐 */
+.upload-page-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1 1 auto;
+    font-size: 36px;
+}
+
+.upload-container {
+    max-width: 900px;
+    width: 100%;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 40px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.upload-container h1 {
+    font-size: 48px;
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.upload-container label {
+    font-size:36px;
+    margin: 20px 0 10px 0;
+    display:block;
+}
+
+.upload-container input[type="file"] {
+    margin-bottom: 40px;
+    font-size:36px;
+}
+
+.owner-type {
+    margin: 20px 0;
+    font-size:36px;
+    display: flex;
+    align-items:center;
+}
+
+.owner-type input[type="radio"] {
+    transform: scale(1.8);
+    margin-right: 10px;
+}
+
+.upload-container button {
+    font-size:36px;
+    padding: 18px 36px;
+    margin-top:20px;
+}
