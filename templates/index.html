@@ -26,6 +26,7 @@
         }
 
         function startEditing() {
+            // 旧文件编辑
             document.getElementById('edit_button').style.display = 'none';
             document.getElementById('edit_controls').style.display = 'inline-block';
             document.getElementById('edit_form').style.display = 'block';
@@ -42,11 +43,12 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // 点击文件条目选中/取消选中
+            // 点击文件行选中
             document.querySelectorAll('.file-item').forEach(function(item) {
                 item.addEventListener('click', function(e) {
-                    // 若点击open-button、rename-button或rename-form不选择
-                    if (e.target.closest('.rename-button') || e.target.closest('.rename-form') || e.target.closest('.open-button')) {
+                    if (e.target.closest('.rename-button')
+                     || e.target.closest('.rename-form')
+                     || e.target.closest('.open-button')) {
                         return;
                     }
                     item.classList.toggle('selected');
@@ -127,8 +129,12 @@
 <body>
 <div class="header">
     <div class="logo">abyss' markdown store</div>
-    <div class="controls">
+    <div class="controls" style="margin-left:80px;">
+        <!-- 新建MD文件按钮: selected=__new__，dir=? -->
+        <a href="?selected=__new__&dir={{ current_dir }}" class="btn">新建MD文件</a>
+        <!-- 上传文件按钮 -->
         <a href="{{ url_for('upload_page', dir=current_dir) }}" class="btn primary">上传文件</a>
+
         <div class="search-container">
             <input type="text" id="search_input" placeholder="搜索..." value="{{ search_keyword }}">
             <button class="btn" onclick="doSearch()">搜索</button>
@@ -141,7 +147,9 @@
         </div>
     </div>
 </div>
+
 <div class="main">
+    <!-- 左侧面板 -->
     <div class="left-panel">
         <div class="folder-nav">
             {% if current_dir != '' %}
@@ -240,6 +248,8 @@
             </ul>
         </div>
     </div>
+
+    <!-- 右侧面板 -->
     <div class="right-panel">
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -250,7 +260,29 @@
             </ul>
           {% endif %}
         {% endwith %}
-        {% if selected_file %}
+
+        {% if is_new_file %}
+            <!-- 新建文件表单（和已有文件编辑使用相同风格） -->
+            <div class="top-line">
+                <div class="file-title">新建MD文件</div>
+            </div>
+            <form method="post" action="{{ url_for('create_new_file') }}" id="new_file_form">
+                <input type="hidden" name="dir" value="{{ current_dir }}">
+                <p>文件名:</p>
+                <input type="text" name="new_filename" class="input-text short-input" placeholder="示例: test.md" required>
+                <div>
+                    <label><input type="radio" name="owner_type" value="shared" checked>共享文件</label>
+                    <label><input type="radio" name="owner_type" value="personal">个人文件</label>
+                    <br>
+                    <input type="text" name="owner_user" class="input-text short-input" placeholder="个人文件请填用户名(否则共享)">
+                </div>
+                <p>内容:</p>
+                <textarea name="content" class="textarea" style="height:400px;"></textarea>
+                <br>
+                <button type="submit" class="btn primary">保存</button>
+            </form>
+
+        {% elif selected_file %}
             <div class="top-line">
                 <div class="file-title">{{ selected_file_original_name }}</div>
                 <div class="file-actions">
@@ -264,40 +296,36 @@
                 </div>
             </div>
 
-            <div id="file_content_view">
-                {% if need_auth_to_view %}
-                    <p>这是个人文件，请输入用户名查看：</p>
-                    <form method="get" action="">
-                        <input type="hidden" name="dir" value="{{ current_dir }}">
-                        <input type="hidden" name="selected" value="{{ selected_file }}">
-                        <input type="text" name="auth_user" class="input-text" placeholder="用户名" required>
-                        <button type="submit" class="btn primary">确认</button>
-                    </form>
-                {% else %}
-                    <div class="md-content">
-                        {{ selected_file_html|safe }}
-                    </div>
-                {% endif %}
-            </div>
-
-            {% if not need_auth_to_view %}
-            <form method="post" action="{{ url_for('update_file') }}" id="edit_form" style="display:none;">
-                <input type="hidden" name="dir" value="{{ current_dir }}">
-                <input type="hidden" name="filename" value="{{ selected_file }}">
-                {% if selected_file_owner != 'shared' %}
-                    <p>这是个人文件，请输入用户名：</p>
-                    <input type="text" name="owner_user" class="input-text" placeholder="用户名" required>
-                {% else %}
-                    <input type="hidden" name="owner_user" value="shared">
-                {% endif %}
-                <textarea name="content" class="textarea">{{ selected_file_content }}</textarea>
-            </form>
+            {% if need_auth_to_view %}
+                <p>这是个人文件，请输入用户名查看：</p>
+                <form method="get" action="">
+                    <input type="hidden" name="dir" value="{{ current_dir }}">
+                    <input type="hidden" name="selected" value="{{ selected_file }}">
+                    <input type="text" name="auth_user" class="input-text" placeholder="用户名" required>
+                    <button type="submit" class="btn primary">确认</button>
+                </form>
+            {% else %}
+                <div class="md-content">
+                    {{ selected_file_html|safe }}
+                </div>
+                <form method="post" action="{{ url_for('update_file') }}" id="edit_form" style="display:none;">
+                    <input type="hidden" name="dir" value="{{ current_dir }}">
+                    <input type="hidden" name="filename" value="{{ selected_file }}">
+                    {% if selected_file_owner != 'shared' %}
+                        <p>这是个人文件，请输入用户名：</p>
+                        <input type="text" name="owner_user" class="input-text" placeholder="用户名" required>
+                    {% else %}
+                        <input type="hidden" name="owner_user" value="shared">
+                    {% endif %}
+                    <textarea name="content" class="textarea" style="height:400px;">{{ selected_file_content }}</textarea>
+                </form>
             {% endif %}
         {% else %}
             <p>请选择一个MD文件以查看和编辑内容。</p>
         {% endif %}
     </div>
 </div>
+
 <div class="footer">
     abyss' markdown store - version0.0.1
 </div>
