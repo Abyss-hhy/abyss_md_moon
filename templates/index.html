@@ -25,14 +25,23 @@
             window.location.search = urlParams.toString();
         }
 
+        // 开始编辑：隐藏文件内容渲染，显示编辑框
         function startEditing() {
-            // 旧文件编辑
+            const contentDiv = document.getElementById('file_content_view');
+            if (contentDiv) {
+                contentDiv.style.display = 'none';
+            }
             document.getElementById('edit_button').style.display = 'none';
             document.getElementById('edit_controls').style.display = 'inline-block';
             document.getElementById('edit_form').style.display = 'block';
         }
 
+        // 取消编辑：恢复文件内容渲染，隐藏编辑框
         function cancelEditing() {
+            const contentDiv = document.getElementById('file_content_view');
+            if (contentDiv) {
+                contentDiv.style.display = 'block';
+            }
             document.getElementById('edit_button').style.display = 'inline-block';
             document.getElementById('edit_controls').style.display = 'none';
             document.getElementById('edit_form').style.display = 'none';
@@ -43,7 +52,32 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // 点击文件行选中
+            // 批量操作表单提交前收集选中文件
+            function attachBatchHandler(formId) {
+                const form = document.getElementById(formId);
+                if(!form) return;
+                form.addEventListener('submit', function(e) {
+                    const selectedItems = document.querySelectorAll('.file-item.selected');
+                    if (selectedItems.length === 0) {
+                        alert('请在列表中选择项目');
+                        e.preventDefault();
+                        return;
+                    }
+                    selectedItems.forEach(function(fileItem) {
+                        const fileName = fileItem.getAttribute('data-filename');
+                        const hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = 'selected_files';
+                        hiddenInput.value = fileName;
+                        e.target.appendChild(hiddenInput);
+                    });
+                });
+            }
+            attachBatchHandler('batch_download_form');
+            attachBatchHandler('batch_delete_form');
+            attachBatchHandler('batch_move_form');
+
+            // 单击file-item选中/取消选中
             document.querySelectorAll('.file-item').forEach(function(item) {
                 item.addEventListener('click', function(e) {
                     if (e.target.closest('.rename-button')
@@ -52,60 +86,6 @@
                         return;
                     }
                     item.classList.toggle('selected');
-                });
-            });
-
-            // 批量下载
-            document.getElementById('batch_download_form').addEventListener('submit', function(e) {
-                const selectedItems = document.querySelectorAll('.file-item.selected');
-                if (selectedItems.length === 0) {
-                    alert('请在列表中选择项目');
-                    e.preventDefault();
-                    return;
-                }
-                selectedItems.forEach(function(fileItem) {
-                    const fileName = fileItem.getAttribute('data-filename');
-                    const hiddenInput = document.createElement('input');
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.name = 'selected_files';
-                    hiddenInput.value = fileName;
-                    e.target.appendChild(hiddenInput);
-                });
-            });
-
-            // 批量删除
-            document.getElementById('batch_delete_form').addEventListener('submit', function(e) {
-                const selectedItems = document.querySelectorAll('.file-item.selected');
-                if (selectedItems.length === 0) {
-                    alert('请在列表中选择项目');
-                    e.preventDefault();
-                    return;
-                }
-                selectedItems.forEach(function(fileItem) {
-                    const fileName = fileItem.getAttribute('data-filename');
-                    const hiddenInput = document.createElement('input');
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.name = 'selected_files';
-                    hiddenInput.value = fileName;
-                    e.target.appendChild(hiddenInput);
-                });
-            });
-
-            // 批量移动
-            document.getElementById('batch_move_form').addEventListener('submit', function(e) {
-                const selectedItems = document.querySelectorAll('.file-item.selected');
-                if (selectedItems.length === 0) {
-                    alert('请在列表中选择项目');
-                    e.preventDefault();
-                    return;
-                }
-                selectedItems.forEach(function(fileItem) {
-                    const fileName = fileItem.getAttribute('data-filename');
-                    const hiddenInput = document.createElement('input');
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.name = 'selected_files';
-                    hiddenInput.value = fileName;
-                    e.target.appendChild(hiddenInput);
                 });
             });
         });
@@ -128,23 +108,27 @@
 </head>
 <body>
 <div class="header">
+    <!-- 一横排，从左到右：网站名 -> 排序 -> 搜索 -> 新建文件 -> 上传文件 -->
     <div class="logo">abyss' markdown store</div>
-    <div class="controls" style="margin-left:80px;">
-        <!-- 新建MD文件按钮: selected=__new__，dir=? -->
-        <a href="?selected=__new__&dir={{ current_dir }}" class="btn">新建MD文件</a>
-        <!-- 上传文件按钮 -->
-        <a href="{{ url_for('upload_page', dir=current_dir) }}" class="btn primary">上传文件</a>
 
-        <div class="search-container">
-            <input type="text" id="search_input" placeholder="搜索..." value="{{ search_keyword }}">
-            <button class="btn" onclick="doSearch()">搜索</button>
-        </div>
-        <div class="sort-container">
-            <span>排序:</span>
-            <button class="btn" onclick="changeSort('name')">名称</button>
-            <button class="btn" onclick="changeSort('upload_time')">上传时间</button>
-            <button class="btn" onclick="changeSort('edit_time')">编辑时间</button>
-        </div>
+    <!-- 排序按钮组 -->
+    <div class="sort-container">
+        <span>排序:</span>
+        <button class="btn" onclick="changeSort('name')">名称</button>
+        <button class="btn" onclick="changeSort('upload_time')">上传时间</button>
+        <button class="btn" onclick="changeSort('edit_time')">编辑时间</button>
+    </div>
+
+    <!-- 搜索框居中 -->
+    <div class="search-container">
+        <input type="text" id="search_input" placeholder="搜索..." value="{{ search_keyword }}">
+        <button class="btn" onclick="doSearch()">搜索</button>
+    </div>
+
+    <!-- 新建 & 上传 放在最右 -->
+    <div class="header-right">
+        <a href="?selected=__new__&dir={{ current_dir }}" class="btn">新建MD文件</a>
+        <a href="{{ url_for('upload_page', dir=current_dir) }}" class="btn primary">上传文件</a>
     </div>
 </div>
 
@@ -164,7 +148,7 @@
             </form>
         </div>
         <hr>
-        <!-- 批量操作按钮 -->
+        <!-- 批量操作 -->
         <div class="batch-operations">
             <form id="batch_download_form" action="{{ url_for('download_selected') }}" method="post" style="display:inline;">
                 <input type="hidden" name="dir" value="{{ current_dir }}">
@@ -249,7 +233,7 @@
         </div>
     </div>
 
-    <!-- 右侧面板 -->
+    <!-- 右侧面板：编辑/查看/新建 -->
     <div class="right-panel">
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -262,25 +246,35 @@
         {% endwith %}
 
         {% if is_new_file %}
-            <!-- 新建文件表单（和已有文件编辑使用相同风格） -->
+            <!-- 新建文件表单 -->
             <div class="top-line">
                 <div class="file-title">新建MD文件</div>
             </div>
-            <form method="post" action="{{ url_for('create_new_file') }}" id="new_file_form">
-                <input type="hidden" name="dir" value="{{ current_dir }}">
-                <p>文件名:</p>
-                <input type="text" name="new_filename" class="input-text short-input" placeholder="示例: test.md" required>
-                <div>
-                    <label><input type="radio" name="owner_type" value="shared" checked>共享文件</label>
-                    <label><input type="radio" name="owner_type" value="personal">个人文件</label>
-                    <br>
-                    <input type="text" name="owner_user" class="input-text short-input" placeholder="个人文件请填用户名(否则共享)">
+            <div class="editor-container">
+                <div class="upload-container" style="margin-top:20px; height:100%; display:flex; flex-direction:column;">
+                    <form method="post" action="{{ url_for('create_new_file') }}" style="display:flex; flex-direction:column; height:100%;">
+                        <input type="hidden" name="dir" value="{{ current_dir }}">
+
+                        <label for="new_filename">文件名:</label>
+                        <input type="text" name="new_filename" class="input-text short-input" placeholder="如: mydoc.md" required style="margin-bottom:20px;">
+
+                        <div class="owner-type">
+                            <label><input type="radio" name="owner_type" value="shared" checked> 共享文件</label>
+                            <label><input type="radio" name="owner_type" value="personal"> 个人文件</label>
+                        </div>
+                        <label for="owner_user">个人文件请填用户名(否则留空)</label>
+                        <input type="text" name="owner_user" class="input-text short-input" style="margin-bottom:20px;">
+
+                        <label for="content">内容:</label>
+                        <!-- 让textarea填满剩余空间 -->
+                        <textarea name="content" class="textarea" style="flex:1 1 auto;"></textarea>
+
+                        <div style="margin-top:20px;">
+                            <button type="submit" class="btn primary">保存</button>
+                        </div>
+                    </form>
                 </div>
-                <p>内容:</p>
-                <textarea name="content" class="textarea" style="height:400px;"></textarea>
-                <br>
-                <button type="submit" class="btn primary">保存</button>
-            </form>
+            </div>
 
         {% elif selected_file %}
             <div class="top-line">
@@ -305,23 +299,29 @@
                     <button type="submit" class="btn primary">确认</button>
                 </form>
             {% else %}
-                <div class="md-content">
-                    {{ selected_file_html|safe }}
+                <div class="editor-container">
+                    <!-- 渲染内容 -->
+                    <div id="file_content_view">
+                        <div class="md-content" style="margin-bottom:10px;">
+                            {{ selected_file_html|safe }}
+                        </div>
+                    </div>
+                    <!-- 编辑表单，开始隐藏 -->
+                    <form method="post" action="{{ url_for('update_file') }}" id="edit_form" style="display:none; flex:1 1 auto; margin-top:10px; flex-direction:column;">
+                        <input type="hidden" name="dir" value="{{ current_dir }}">
+                        <input type="hidden" name="filename" value="{{ selected_file }}">
+                        {% if selected_file_owner != 'shared' %}
+                            <p>这是个人文件，请输入用户名：</p>
+                            <input type="text" name="owner_user" class="input-text" placeholder="用户名" required>
+                        {% else %}
+                            <input type="hidden" name="owner_user" value="shared">
+                        {% endif %}
+                        <textarea name="content" class="textarea" style="flex:1 1 auto;">{{ selected_file_content }}</textarea>
+                    </form>
                 </div>
-                <form method="post" action="{{ url_for('update_file') }}" id="edit_form" style="display:none;">
-                    <input type="hidden" name="dir" value="{{ current_dir }}">
-                    <input type="hidden" name="filename" value="{{ selected_file }}">
-                    {% if selected_file_owner != 'shared' %}
-                        <p>这是个人文件，请输入用户名：</p>
-                        <input type="text" name="owner_user" class="input-text" placeholder="用户名" required>
-                    {% else %}
-                        <input type="hidden" name="owner_user" value="shared">
-                    {% endif %}
-                    <textarea name="content" class="textarea" style="height:400px;">{{ selected_file_content }}</textarea>
-                </form>
             {% endif %}
         {% else %}
-            <p>请选择一个MD文件以查看和编辑内容。</p>
+            <p>请选择一个MD文件以查看和编辑，或点击右上角“新建MD文件”。</p>
         {% endif %}
     </div>
 </div>

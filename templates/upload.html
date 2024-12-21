@@ -6,30 +6,32 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<div class="header">
-    <div class="logo">abyss' markdown store</div>
-    <div class="controls">
-        <a href="{{ url_for('index', dir=current_dir) }}" class="btn">返回</a>
-    </div>
-</div>
 <div class="upload-page-wrapper">
     <div class="upload-container">
-        <h1>上传文件</h1>
+        <h1 style="font-size:48px; margin-bottom:40px;">上传文件</h1>
         <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
             <input type="hidden" name="dir" value="{{ current_dir }}">
-            <!-- 支持一次选择多个文件 -->
-            <input type="file" name="file" multiple required>
-            <div class="owner-type">
-                <label><input type="radio" name="owner_type" value="shared" checked> 共享文件</label>
-                <label><input type="radio" name="owner_type" value="personal"> 个人文件</label>
-            </div>
-            <input type="text" name="owner_user" placeholder="（个人文件请输入用户名）" class="input-text">
-            <button type="submit" class="btn primary">上传</button>
+
+            <label class="owner-type" style="margin-bottom:20px;">
+                <input type="radio" name="owner_type" value="shared" checked>
+                <span style="font-size:36px; margin-right:30px;">共享文件</span>
+                <input type="radio" name="owner_type" value="personal">
+                <span style="font-size:36px;">个人文件</span>
+            </label>
+
+            <label style="font-size:36px; margin-bottom:20px;">用户名(个人文件时必填)：</label>
+            <input type="text" name="owner_user" class="input-text" style="margin-bottom:30px; font-size:36px;">
+
+            <label style="font-size:36px; margin-bottom:10px;">选择文件（可多选）:</label>
+            <input type="file" name="file" multiple style="font-size:36px; margin-bottom:40px;">
+
+            <button type="submit" class="btn primary" style="font-size:36px; padding:18px 36px;">提交</button>
         </form>
+
+        <div style="margin-top:40px;">
+            <a href="{{ url_for('index', dir=current_dir) }}" class="btn" style="font-size:36px;">返回</a>
+        </div>
     </div>
-</div>
-<div class="footer">
-    abyss' markdown store - version0.0.1
 </div>
 </body>
 </html>

@@ -16,10 +16,10 @@ body, html {
 body {
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* 不让body出现滚动条 */
+    overflow: hidden; /* 不出现浏览器滚动条，由内部面板滚动 */
 }
 
-/* Header + Footer固定，middle main区域固定高度 */
+/* Header */
 .header {
     background: #333;
     color: #fff;
@@ -27,21 +27,27 @@ body {
     align-items: center;
     padding: 20px;
     flex: 0 0 auto;
+    justify-content: flex-start; /* 一行从左到右 */
 }
 
 .header .logo {
     font-size: 40px;
     font-weight: bold;
-    margin-right: 20px;
+    margin-right: 40px; /* 与后面保持间隔 */
 }
 
-.header .controls {
+/* 排序容器 */
+.sort-container {
+    margin-right: 40px; /* 与搜索居中保持一定距离 */
+    display: inline-block;
+    font-size:32px;
+}
+
+/* 搜索容器居中(此处可根据需求再做微调) */
+.search-container {
+    margin-right: auto; /* 将其余按钮推到最右 */
     display: flex;
     align-items: center;
-    width: 100%;
-    /* 关键：右移一些 */
-    margin-left: 80px;
-    justify-content: flex-start;
 }
 
 .search-container input {
@@ -49,15 +55,15 @@ body {
     border-radius: 8px;
     border: 1px solid #ccc;
     font-size: 32px;
-    margin-left: 40px;
+    margin-right: 10px;
 }
 
-.sort-container {
-    margin-left: 40px;
-    display: inline-block;
-    font-size:32px;
+.header-right {
+    display: flex;
+    align-items: center;
 }
 
+/* 按钮通用样式 */
 .btn {
     background: #eee;
     border: 1px solid #ccc;
@@ -66,7 +72,7 @@ body {
     text-decoration: none;
     color: #333;
     cursor: pointer;
-    margin: 0 10px;
+    margin-left: 20px; /* 与之前元素保持间距 */
     font-size: 32px;
 }
 
@@ -114,10 +120,11 @@ body {
     background: #e68a00;
 }
 
+/* 主体区域：左右面板各自滚动 */
 .main {
     flex: 1 1 auto;
     display: flex;
-    overflow: hidden; /* 不出现浏览器全局滚动条，而是让内部面板滚动 */
+    overflow: hidden;
 }
 
 .footer {
@@ -129,11 +136,12 @@ body {
     flex: 0 0 auto;
 }
 
+/* 左侧面板 */
 .left-panel {
     width: 40%;
     border-right: 1px solid #ccc;
     padding: 20px;
-    overflow: auto; /* 左侧滚动 */
+    overflow: auto;
     background: #fff;
     font-size:32px;
 }
@@ -217,32 +225,15 @@ body {
     width: 200px;
 }
 
-.textarea {
-    width: 100%;
-    font-family: Consolas, "Courier New", monospace;
-    padding: 20px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size:32px;
-}
-
-.md-content {
-    background: #fefefe;
-    border: 1px solid #ccc;
-    padding: 20px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-family: Consolas, "Courier New", monospace;
-    border-radius: 8px;
-    font-size:32px;
-}
-
+/* 右侧面板 */
 .right-panel {
     width: 60%;
     padding: 20px;
-    overflow: auto; /* 右侧滚动 */
+    overflow: auto;
     background: #fff;
     font-size:32px;
+    display: flex;
+    flex-direction: column; /* 让里面的元素可自适应高度 */
 }
 
 .top-line {
@@ -261,76 +252,37 @@ body {
     flex: 0 0 auto;
 }
 
-.upload-page-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex: 1 1 auto;
-}
-
-.upload-container {
-    max-width: 800px;
-    width: 100%;
-    background: #fff;
+/* Markdown内容显示 */
+.md-content {
+    background: #fefefe;
     border: 1px solid #ccc;
+    padding: 20px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: Consolas, "Courier New", monospace;
     border-radius: 8px;
-    padding:40px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    font-size:32px;
 }
 
-.upload-container h1 {
-    font-size: 40px;
-    margin-bottom: 40px;
-}
-
-.upload-container form {
+.editor-container {
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
+    overflow: auto;
+    margin-top: 10px;
 }
 
-.upload-container input[type="file"] {
-    margin-bottom: 40px;
+/* 文本编辑框可随容器延伸到footer上沿 */
+.textarea {
+    width: 100%;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
     font-size:32px;
+    font-family: Consolas, "Courier New", monospace;
 }
 
-.upload-container .owner-type {
-    margin-bottom: 40px;
-    display: flex;
-    align-items: center;
-}
-
-.upload-container .owner-type input {
-    margin-right: 10px;
-    transform: scale(1.5);
-}
-
-.upload-container .owner-type label {
-    margin-right: 40px;
-    font-size:32px;
-}
-
-.upload-container input[name="owner_user"] {
-    margin-bottom: 40px;
-}
-
-.upload-container button {
-    align-self: flex-start;
-    font-size:32px;
-    padding: 12px 24px;
-}
-
-.upload-container a {
-    display: inline-block;
-    margin-top: 40px;
-    font-size:32px;
-    text-decoration: none;
-    color: #4CAF50;
-}
-
-.upload-container a:hover {
-    text-decoration: underline;
-}
-
+/* Flash消息 */
 .flashes {
     list-style: none;
     padding: 0;
@@ -343,4 +295,64 @@ body {
     padding: 10px;
     margin-bottom: 10px;
     border-radius: 4px;
+}
+
+/* 上传页面：居中放大 */
+.upload-page-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1 1 auto;
+    font-size: 36px;
+}
+
+.upload-container {
+    max-width: 900px;
+    width: 100%;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 40px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* 这里调大字体等 */
+.upload-container h1 {
+    font-size: 48px;
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.upload-container label {
+    font-size:36px;
+    margin: 20px 0 10px 0;
+    display:block;
+}
+
+.upload-container input[type="file"] {
+    margin-bottom: 40px;
+    font-size:36px;
+}
+
+.upload-container .owner-type {
+    margin: 20px 0;
+    font-size:36px;
+    display: flex;
+    align-items:center;
+}
+
+.upload-container .owner-type input {
+    margin-right: 10px;
+    transform: scale(1.5);
+    margin-top: 8px;
+}
+
+.upload-container .owner-type label {
+    margin-right:40px;
+}
+
+.upload-container button {
+    font-size:36px;
+    padding: 18px 36px;
+    margin-top:20px;
 }
