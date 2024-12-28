@@ -59,11 +59,11 @@
             function attachBatchHandler(formId) {
                 const form = document.getElementById(formId);
                 if(!form) return;
-                form.addEventListener('submit', function(e){
+                form.addEventListener('submit', async function(e){
+                    e.preventDefault();
                     const selectedItems = document.querySelectorAll('.file-item.selected');
                     if (selectedItems.length === 0){
-                        alert('请在列表中选择项目');
-                        e.preventDefault();
+                        await showAlert('请在列表中选择项目');
                         return;
                     }
                     selectedItems.forEach(function(fileItem){
@@ -74,14 +74,15 @@
                         hiddenInput.value = fileName;
                         e.target.appendChild(hiddenInput);
                     });
+                    form.submit();
                 });
             }
             attachBatchHandler('batch_download_form');
             attachBatchHandler('batch_delete_form');
             attachBatchHandler('batch_move_form');
 
-            // 单击文件行选中
-            document.querySelectorAll('.file-item').forEach(function(item) {
+            // 单击文件行选中(只允许选择文件,不允许选择文件夹)
+            document.querySelectorAll('.file-item:not(.folder-item)').forEach(function(item) {
                 item.addEventListener('click', function(e) {
                     if (e.target.closest('.rename-button')
                      || e.target.closest('.rename-form')
@@ -107,15 +108,235 @@
             const form = event.target.closest('.rename-form');
             form.style.display = 'none';
         }
+
+        // 批量操作相关函数
+        function getSelectedFiles() {
+            const selectedItems = document.querySelectorAll('.file-item.selected');
+            return Array.from(selectedItems).map(item => ({
+                filename: item.getAttribute('data-filename'),
+                isPersonal: item.getAttribute('data-owner') !== 'shared',
+                owner: item.getAttribute('data-owner')
+            }));
+        }
+
+        // 批量移动
+        function openBatchMoveModal() {
+            const selectedFiles = getSelectedFiles();
+            if (selectedFiles.length === 0) {
+                alert('请选择要移动的文件');
+                return;
+            }
+            
+            const form = document.getElementById('batchMoveForm');
+            // 清除之前的hidden inputs
+            form.querySelectorAll('input[name="selected_files"]').forEach(input => input.remove());
+            
+            // 添加新的hidden inputs
+            selectedFiles.forEach(file => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selected_files';
+                input.value = file.filename;
+                form.appendChild(input);
+            });
+            
+            document.getElementById('batchMoveModal').style.display = 'flex';
+        }
+
+        function closeBatchMoveModal() {
+            document.getElementById('batchMoveModal').style.display = 'none';
+        }
+
+        // 批量下载
+        async function batchDownload() {
+            const selectedFiles = getSelectedFiles();
+            if (selectedFiles.length === 0) {
+                await showAlert('请选择要下载的文件');
+                return;
+            }
+            
+            // 检查文件权限
+            const personalFiles = selectedFiles.filter(f => f.isPersonal);
+            if (personalFiles.length === 0) {
+                submitBatchDownload();
+                return;
+            }
+            
+            const owners = new Set(personalFiles.map(f => f.owner));
+            if (owners.size > 1) {
+                await showAlert('选中的文件属于不同用户,无法批量下载');
+                return;
+            }
+            
+            // 弹出验证框
+            document.getElementById('batchAuthTitle').textContent = '验证下载权限';
+            const authForm = document.getElementById('batchAuthForm');
+            authForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const username = authForm.owner_user.value;
+                if (username === Array.from(owners)[0]) {
+                    closeBatchAuthModal();
+                    submitBatchDownload(username);
+                } else {
+                    alert('用户名验证失败');
+                }
+            };
+            document.getElementById('batchAuthModal').style.display = 'flex';
+        }
+
+        function submitBatchDownload(username = '') {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("download_selected") }}';
+            
+            // 添加当前目录
+            const dirInput = document.createElement('input');
+            dirInput.type = 'hidden';
+            dirInput.name = 'dir';
+            dirInput.value = '{{ current_dir }}';
+            form.appendChild(dirInput);
+            
+            // 添加用户名(如果有)
+            if (username) {
+                const userInput = document.createElement('input');
+                userInput.type = 'hidden';
+                userInput.name = 'owner_user';
+                userInput.value = username;
+                form.appendChild(userInput);
+            }
+            
+            // 添加选中的文件
+            getSelectedFiles().forEach(file => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selected_files';
+                input.value = file.filename;
+                form.appendChild(input);
+            });
+            
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+
+        // 批量删除
+        async function batchDelete() {
+            const selectedFiles = getSelectedFiles();
+            if (selectedFiles.length === 0) {
+                await showAlert('请选择要删除的文件');
+                return;
+            }
+            
+            // 检查文件权限
+            const personalFiles = selectedFiles.filter(f => f.isPersonal);
+            if (personalFiles.length === 0) {
+                // 全是共享文件,确认后删除
+                if (await showConfirm('确认删除选中的文件吗？此操作不可恢复。')) {
+                    submitBatchDelete();
+                }
+                return;
+            }
+            
+            // 检查是否都是同一个用户的文件
+            const owners = new Set(personalFiles.map(f => f.owner));
+            if (owners.size > 1) {
+                alert('选中的文件属于不同用户,无法批量删除');
+                return;
+            }
+            
+            // 弹出验证框
+            document.getElementById('batchAuthTitle').textContent = '验证删除权限';
+            const authForm = document.getElementById('batchAuthForm');
+            authForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const username = authForm.owner_user.value;
+                if (username === Array.from(owners)[0]) {
+                    if (await showConfirm('确认删除选中的文件吗？此操作不可恢复。')) {
+                        closeBatchAuthModal();
+                        submitBatchDelete(username);
+                    }
+                } else {
+                    alert('用户名验证失败');
+                }
+            };
+            document.getElementById('batchAuthModal').style.display = 'flex';
+        }
+
+        function submitBatchDelete(username = '') {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("delete_selected") }}';
+            
+            // 添加当前目录
+            const dirInput = document.createElement('input');
+            dirInput.type = 'hidden';
+            dirInput.name = 'dir';
+            dirInput.value = '{{ current_dir }}';
+            form.appendChild(dirInput);
+            
+            // 添加用户名(如果有)
+            if (username) {
+                const userInput = document.createElement('input');
+                userInput.type = 'hidden';
+                userInput.name = 'owner_user';
+                userInput.value = username;
+                form.appendChild(userInput);
+            }
+            
+            // 添加选中的文件
+            getSelectedFiles().forEach(file => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selected_files';
+                input.value = file.filename;
+                form.appendChild(input);
+            });
+            
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+
+        function closeBatchAuthModal() {
+            document.getElementById('batchAuthModal').style.display = 'none';
+        }
+
+        // 通用模态框函数
+        let modalResolve = null;
+
+        function showModal(title, message, showCancel = false) {
+            return new Promise((resolve) => {
+                modalResolve = resolve;
+                
+                document.getElementById('messageTitle').textContent = title;
+                document.getElementById('messageContent').textContent = message;
+                document.getElementById('messageCancelBtn').style.display = showCancel ? 'block' : 'none';
+                document.getElementById('messageModal').style.display = 'flex';
+            });
+        }
+
+        function closeMessageModal(result) {
+            document.getElementById('messageModal').style.display = 'none';
+            if (modalResolve) {
+                modalResolve(result);
+                modalResolve = null;
+            }
+        }
+
+        // 替换alert
+        async function showAlert(message) {
+            await showModal('提示', message, false);
+        }
+
+        // 替换confirm
+        async function showConfirm(message) {
+            return await showModal('确认', message, true);
+        }
     </script>
 </head>
 <body>
-<!-- 头部布局：网站名->排序->搜索居中->新建->上传 -->
+<!-- 头部布局：排序->搜索居中->新建->上传 -->
 <div class="header">
-    <div class="logo">
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-img">
-        abyss' markdown store
-    </div>
     <div class="sort-container">
         <span>排序:</span>
         <button class="btn" onclick="changeSort('name')">名称</button>
@@ -126,7 +347,7 @@
         <input type="text" id="search_input" placeholder="搜索..." value="{{ search_keyword }}">
         <button class="btn" onclick="doSearch()">搜索</button>
     </div>
-    <a href="?selected=__new__&dir={{ current_dir }}" class="btn">新建MD文件</a>
+    <a href="javascript:void(0)" onclick="openNewFileModal()" class="btn">新建MD文件</a>
     <a href="javascript:void(0)" onclick="openUploadModal()" class="btn primary">上传文件</a>
 </div>
 
@@ -140,35 +361,11 @@
                 <a href="{{ url_for('index', dir=parent_dir) }}" class="btn back-button">返回上级目录</a>
                 {% endif %}
             </div>
-            <div class="folder-ops">
-                <form action="{{ url_for('mkdir') }}" method="post" style="display:inline;">
-                    <input type="hidden" name="dir" value="{{ current_dir }}">
-                    <input type="text" name="folder_name" placeholder="新建文件夹名" class="input-text">
-                    <button type="submit" class="btn">新建文件夹</button>
-                </form>
-            </div>
             <div class="batch-operations">
-                <form id="batch_download_form" action="{{ url_for('download_selected') }}" method="post" style="display:inline;">
-                    <input type="hidden" name="dir" value="{{ current_dir }}">
-                    <button type="submit" class="btn primary">批量下载</button>
-                </form>
-                <form id="batch_delete_form" action="{{ url_for('delete_selected') }}" method="post" style="display:inline;" onsubmit="return confirm('确认批量删除选中的文件或文件夹吗？');">
-                    <input type="hidden" name="dir" value="{{ current_dir }}">
-                    <input type="text" name="owner_user" placeholder="用户名(个人文件必填, 共享不填)" class="input-text short-input">
-                    <button type="submit" class="btn danger">批量删除</button>
-                </form>
-                <form id="batch_move_form" action="{{ url_for('move_selected') }}" method="post" style="display:inline;">
-                    <input type="hidden" name="dir" value="{{ current_dir }}">
-                    <select name="target_dir" class="input-text short-input" required>
-                        <option value="/">根目录</option>
-                        {% for d in all_dirs %}
-                        {% if d != '/' %}
-                        <option value="{{ d }}">{{ d }}</option>
-                        {% endif %}
-                        {% endfor %}
-                    </select>
-                    <button type="submit" class="btn secondary">批量移动</button>
-                </form>
+                <button onclick="openNewFolderModal()" class="btn">新建文件夹</button>
+                <button onclick="batchDownload()" class="btn primary">批量下载</button>
+                <button onclick="openBatchMoveModal()" class="btn">批量移动</button>
+                <button onclick="batchDelete()" class="btn danger">批量删除</button>
             </div>
         </div>
 
@@ -208,7 +405,7 @@
             <div class="file-list">
                 <ul>
                 {% for f in files %}
-                    <li class="file-item" data-filename="{{ f.name }}">
+                    <li class="file-item" data-filename="{{ f.name }}" data-owner="{{ f.owner }}">
                         <div class="file-icon">📄</div>
                         <div class="file-info">
                             <div class="file-name">{{ f.original_name }}</div>
@@ -378,14 +575,6 @@
         <div id="fileList"></div>
       </div>
 
-      <!-- 上传进度条 -->
-      <div class="upload-progress">
-        <div class="progress-text">上传进度: <span id="progressText">0%</span></div>
-        <div class="progress-bar">
-          <div class="progress-bar-fill" id="progressBar"></div>
-        </div>
-      </div>
-
       <!-- 操作按钮 -->
       <div class="modal-buttons">
         <button type="submit" class="btn primary">上传</button>
@@ -395,108 +584,251 @@
   </div>
 </div>
 
+<!-- 在body末尾添加新建文件模态框 -->
+<div id="newFileModal" class="modal">
+  <div class="modal-content">
+    <h2>新建MD文件</h2>
+    
+    <form id="newFileForm" action="{{ url_for('create_new_file') }}" method="post">
+      <input type="hidden" name="dir" value="{{ current_dir }}">
+      
+      <!-- 文件名输入 -->
+      <div class="input-group">
+        <label>文件名:</label>
+        <input type="text" name="new_filename" class="input-text" placeholder="如: 我的文档.md" required>
+      </div>
+      
+      <!-- 文件类型选择 -->
+      <div class="owner-type-section">
+        <div class="section-title">文件类型</div>
+        <div class="owner-type">
+          <label><input type="radio" name="owner_type" value="shared" checked> 共享文件</label>
+          <label><input type="radio" name="owner_type" value="personal"> 个人文件</label>
+        </div>
+      </div>
+
+      <!-- 用户名输入(默认隐藏) -->
+      <div id="new_file_owner_input" style="display:none;">
+        <label>用户名:</label>
+        <input type="text" name="owner_user" class="input-text">
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="modal-buttons">
+        <button type="submit" class="btn primary">创建</button>
+        <button type="button" class="btn" onclick="closeNewFileModal()">取消</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 添加新建文件夹模态框 -->
+<div id="newFolderModal" class="modal">
+  <div class="modal-content">
+    <h2>新建文件夹</h2>
+    
+    <form id="newFolderForm" action="{{ url_for('mkdir') }}" method="post">
+      <input type="hidden" name="dir" value="{{ current_dir }}">
+      
+      <!-- 文件夹名称输入 -->
+      <div class="input-group">
+        <label>文件夹名称:</label>
+        <input type="text" name="folder_name" class="input-text" placeholder="请输入文件夹名称" required>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="modal-buttons">
+        <button type="submit" class="btn primary">创建</button>
+        <button type="button" class="btn" onclick="closeNewFolderModal()">取消</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 批量移动模态框 -->
+<div id="batchMoveModal" class="modal">
+  <div class="modal-content">
+    <h2>批量移动文件</h2>
+    <form id="batchMoveForm" action="{{ url_for('move_selected') }}" method="post">
+      <input type="hidden" name="dir" value="{{ current_dir }}">
+      <div class="input-group">
+        <label>选择目标文件夹:</label>
+        <select name="target_dir" class="input-text" required>
+          <option value="/">根目录</option>
+          {% for d in all_dirs %}
+          {% if d != '/' %}
+          <option value="{{ d }}">{{ d }}</option>
+          {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-buttons">
+        <button type="submit" class="btn primary">移动</button>
+        <button type="button" class="btn" onclick="closeBatchMoveModal()">取消</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 批量下载/删除验证模态框 -->
+<div id="batchAuthModal" class="modal">
+  <div class="modal-content">
+    <h2 id="batchAuthTitle">验证用户</h2>
+    <form id="batchAuthForm">
+      <div class="input-group">
+        <label>请输入用户名:</label>
+        <input type="text" name="owner_user" class="input-text" required>
+      </div>
+      <div class="modal-buttons">
+        <button type="submit" class="btn primary">确认</button>
+        <button type="button" class="btn" onclick="closeBatchAuthModal()">取消</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 通用消息模态框 -->
+<div id="messageModal" class="modal">
+  <div class="modal-content">
+    <h2 id="messageTitle">提示</h2>
+    <div class="message-content" id="messageContent"></div>
+    <div class="modal-buttons">
+      <button class="btn primary" onclick="closeMessageModal(true)">确定</button>
+      <button class="btn" onclick="closeMessageModal(false)" id="messageCancelBtn" style="display:none;">取消</button>
+    </div>
+  </div>
+</div>
+
 <!-- 添加相关JavaScript -->
 <script>
 // 打开上传模态框
 function openUploadModal() {
-  document.getElementById('uploadModal').style.display = 'flex';
+    document.getElementById('uploadModal').style.display = 'flex';
 }
 
 // 关闭上传模态框
 function closeUploadModal() {
-  document.getElementById('uploadModal').style.display = 'none';
+    document.getElementById('uploadModal').style.display = 'none';
 }
 
-// 处理拖拽上传
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-const fileList = document.getElementById('fileList');
-const uploadForm = document.getElementById('uploadForm');
-const progressBar = document.getElementById('progressBar');
-const progressText = document.getElementById('progressText');
+// 打开新建文件模态框
+function openNewFileModal() {
+    document.getElementById('newFileModal').style.display = 'flex';
+}
 
-// 拖拽事件处理
-dropZone.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  dropZone.classList.add('dragover');
-});
+// 关闭新建文件模态框
+function closeNewFileModal() {
+    document.getElementById('newFileModal').style.display = 'none';
+}
 
-dropZone.addEventListener('dragleave', () => {
-  dropZone.classList.remove('dragover');
-});
+// 打开新建文件夹模态框
+function openNewFolderModal() {
+    document.getElementById('newFolderModal').style.display = 'flex';
+}
 
-dropZone.addEventListener('drop', (e) => {
-  e.preventDefault();
-  dropZone.classList.remove('dragover');
-  const files = e.dataTransfer.files;
-  handleFiles(files);
-});
+// 关闭新建文件夹模态框
+function closeNewFolderModal() {
+    document.getElementById('newFolderModal').style.display = 'none';
+}
 
-// 点击选择文件
-dropZone.addEventListener('click', () => {
-  fileInput.click();
-});
+// 等待DOM加载完成后执行
+document.addEventListener('DOMContentLoaded', function() {
+    // 处理个人/共享文件选择 (上传文件)
+    document.querySelectorAll('#uploadForm input[name="owner_type"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const ownerInput = document.getElementById('upload_owner_input');
+            ownerInput.style.display = e.target.value === 'personal' ? 'block' : 'none';
+        });
+    });
 
-fileInput.addEventListener('change', () => {
-  handleFiles(fileInput.files);
+    // 处理个人/共享文件选择 (新建文件)
+    document.querySelectorAll('#newFileForm input[name="owner_type"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const ownerInput = document.getElementById('new_file_owner_input');
+            ownerInput.style.display = e.target.value === 'personal' ? 'block' : 'none';
+        });
+    });
+
+    // 处理拖拽上传
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+    const uploadForm = document.getElementById('uploadForm');
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        handleFiles(files);
+    });
+
+    dropZone.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', () => {
+        handleFiles(fileInput.files);
+    });
+
+    // 处理表单提交
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(uploadForm);
+        
+        try {
+            const response = await fetch(uploadForm.action, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                await showAlert('上传失败');
+            }
+        } catch (error) {
+            await showAlert('上传出错: ' + error);
+        }
+    });
 });
 
 // 处理选中的文件
-function handleFiles(files) {
-  fileList.innerHTML = '';
-  for (const file of files) {
-    if (!file.name.toLowerCase().endsWith('.md')) {
-      alert('只支持上传.md文件');
-      continue;
+async function handleFiles(files) {
+    const fileList = document.getElementById('fileList');
+    fileList.innerHTML = '';
+    for (const file of files) {
+        if (!file.name.toLowerCase().endsWith('.md')) {
+            await showAlert('只支持上传.md文件');
+            continue;
+        }
+        const item = document.createElement('div');
+        item.className = 'preview-item';
+        item.innerHTML = `
+            <div class="preview-item-name">${file.name}</div>
+            <div class="preview-item-size">${formatFileSize(file.size)}</div>
+        `;
+        fileList.appendChild(item);
     }
-    const item = document.createElement('div');
-    item.className = 'preview-item';
-    item.innerHTML = `
-      <div class="preview-item-name">${file.name}</div>
-      <div class="preview-item-size">${formatFileSize(file.size)}</div>
-    `;
-    fileList.appendChild(item);
-  }
-  document.querySelector('.file-preview').style.display = 'block';
+    document.querySelector('.file-preview').style.display = 'block';
 }
 
 // 文件大小格式化
 function formatFileSize(bytes) {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
-
-// 处理表单提交
-uploadForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const formData = new FormData(uploadForm);
-  
-  try {
-    const response = await fetch(uploadForm.action, {
-      method: 'POST',
-      body: formData
-    });
-    
-    if (response.ok) {
-      window.location.reload();
-    } else {
-      alert('上传失败');
-    }
-  } catch (error) {
-    alert('上传出错: ' + error);
-  }
-});
-
-// 处理个人/共享文件选择
-document.querySelectorAll('input[name="owner_type"]').forEach(radio => {
-  radio.addEventListener('change', (e) => {
-    const ownerInput = document.getElementById('upload_owner_input');
-    ownerInput.style.display = e.target.value === 'personal' ? 'block' : 'none';
-  });
-});
 </script>
 </body>
 </html>

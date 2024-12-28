@@ -233,23 +233,26 @@ def create_new_file():
     new_name = request.form.get('new_filename', '').strip()
     owner_type = request.form.get('owner_type', 'shared')
     owner_user = request.form.get('owner_user', '').strip()
-    content = request.form.get('content', '')
 
     if not new_name.lower().endswith('.md'):
         new_name += '.md'
 
     if not is_valid_name(new_name.replace('.md', '')):
-        flash("文件名不合法，只能包含字母、数字、下划线、点和横杠")
-        return redirect(url_for('index', dir=current_dir, selected='__new__'))
+        flash("文件名不合法，不能包含以下字符: / \\ : * ? \" < > | 且不能以.开头")
+        return redirect(url_for('index', dir=current_dir))
 
     browse_path = os.path.join(UPLOAD_FOLDER, current_dir)
+    if not os.path.exists(browse_path):
+        os.makedirs(browse_path)
+        
     file_path = os.path.join(browse_path, new_name)
     if os.path.exists(file_path):
         flash("已存在同名文件，无法新建")
-        return redirect(url_for('index', dir=current_dir, selected='__new__'))
+        return redirect(url_for('index', dir=current_dir))
 
+    # 创建空文件
     with open(file_path, 'w', encoding='utf-8') as f:
-        f.write(content)
+        f.write('')
 
     ts = str(int(time.time()))
     metadata = load_metadata()
@@ -262,7 +265,7 @@ def create_new_file():
     save_metadata(metadata)
 
     flash("新建文件成功")
-    return redirect(url_for('index', dir=current_dir, selected=new_name))
+    return redirect(url_for('index', dir=current_dir))
 
 @app.route('/upload_file', methods=['POST'])
 def upload_file():
@@ -362,38 +365,48 @@ def download_selected():
 @app.route('/delete_selected', methods=['POST'])
 def delete_selected():
     selected_files = request.form.getlist('selected_files')
-    dir_path = request.form.get('dir', '')
+    current_dir = request.form.get('dir', '')
     owner_user = request.form.get('owner_user', '').strip()
-
+    
     if not selected_files:
-        flash("未选择任何文件或文件夹进行删除。")
-        return redirect(url_for('index', dir=dir_path))
-
+        flash("未选择任何文件")
+        return redirect(url_for('index', dir=current_dir))
+    
     metadata = load_metadata()
-    for name in selected_files:
-        target_path = os.path.join(UPLOAD_FOLDER, dir_path, name)
-        if os.path.isdir(target_path):
-            if os.path.exists(target_path):
-                shutil.rmtree(target_path)
-                flash(f"文件夹 '{name}' 已删除。")
+    success_count = 0
+    error_files = []
+    
+    # 检查所有文件的权限
+    for filename in selected_files:
+        file_meta = metadata.get(filename, {})
+        file_owner = file_meta.get('owner', 'shared')
+        
+        # 如果是个人文件，检查用户名
+        if file_owner != 'shared' and file_owner != owner_user:
+            error_files.append(f"{filename} (用户名验证失败)")
+            continue
+        
+        file_path = os.path.join(UPLOAD_FOLDER, current_dir, filename)
+        try:
+            if os.path.exists(file_path) and os.path.isfile(file_path):
+                os.remove(file_path)
+                if filename in metadata:
+                    del metadata[filename]
+                success_count += 1
             else:
-                flash(f"文件夹 '{name}' 不存在或无法删除。")
-        else:
-            file_meta = metadata.get(name, {})
-            file_owner = file_meta.get('owner', 'shared')
-            if file_owner != 'shared' and owner_user != file_owner:
-                flash(f"文件 '{file_meta.get('original_name', name)}' 的用户名不匹配，无法删除。")
-                continue
-            if os.path.exists(target_path) and os.path.isfile(target_path):
-                os.remove(target_path)
-                if name in metadata:
-                    del metadata[name]
-                flash(f"文件 '{file_meta.get('original_name', name)}' 已删除。")
-            else:
-                flash(f"文件 '{file_meta.get('original_name', name)}' 不存在或无法删除。")
-
-    save_metadata(metadata)
-    return redirect(url_for('index', dir=dir_path))
+                error_files.append(f"{filename} (文件不存在)")
+        except Exception as e:
+            error_files.append(f"{filename} (删除失败: {str(e)})")
+    
+    # 保存更新后的元数据
+    if success_count > 0:
+        save_metadata(metadata)
+        flash(f"成功删除 {success_count} 个文件")
+    
+    if error_files:
+        flash('以下文件删除失败：\n' + '\n'.join(error_files))
+    
+    return redirect(url_for('index', dir=current_dir))
 
 @app.route('/move_selected', methods=['POST'])
 def move_selected():
