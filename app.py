@@ -423,6 +423,9 @@ def move_selected():
         return redirect(url_for('index', dir=current_dir))
 
     metadata = load_metadata()
+    success_count = 0
+    error_files = []
+
     for name in selected_files:
         source_path = os.path.join(UPLOAD_FOLDER, current_dir, name)
         if target_dir == '/':
@@ -431,29 +434,28 @@ def move_selected():
             dest_path = os.path.join(UPLOAD_FOLDER, target_dir.strip('/'), name)
 
         if os.path.exists(dest_path):
-            flash(f"目标位置已存在同名文件或文件夹 '{name}'，无法移动。")
+            error_files.append(f"目标位置已存在同名文件 '{name}'")
             continue
 
-        if os.path.isdir(source_path):
-            shutil.move(source_path, dest_path)
-            flash(f"文件夹 '{name}' 已移动到 '{'根目录' if target_dir == '/' else target_dir}'。")
-        else:
-            if name not in metadata:
-                flash(f"元数据中未找到文件 '{name}'，无法移动。")
-                continue
-            file_owner = metadata[name].get('owner', 'shared')
-            if file_owner != 'shared':
-                flash(f"文件 '{metadata[name].get('original_name', name)}' 是个人文件，无法批量移动。")
-                continue
+        try:
             if os.path.exists(source_path) and os.path.isfile(source_path):
                 shutil.move(source_path, dest_path)
-                metadata[name]['upload_time'] = str(int(time.time()))
-                metadata[name]['edit_time'] = str(int(time.time()))
-                flash(f"文件 '{metadata[name].get('original_name', name)}' 已移动到 '{'根目录' if target_dir == '/' else target_dir}'。")
+                if name in metadata:
+                    metadata[name]['upload_time'] = str(int(time.time()))
+                    metadata[name]['edit_time'] = str(int(time.time()))
+                success_count += 1
             else:
-                flash(f"文件 '{metadata[name].get('original_name', name)}' 不存在或无法移动。")
+                error_files.append(f"文件 '{name}' 不存在或无法移动")
+        except Exception as e:
+            error_files.append(f"移动文件 '{name}' 失败: {str(e)}")
 
-    save_metadata(metadata)
+    if success_count > 0:
+        save_metadata(metadata)
+        flash(f"成功移动 {success_count} 个文件到 '{'根目录' if target_dir == '/' else target_dir}'")
+
+    if error_files:
+        flash('以下文件移动失败：\n' + '\n'.join(error_files))
+
     return redirect(url_for('index', dir=current_dir))
 
 @app.route('/update_file', methods=['POST'])

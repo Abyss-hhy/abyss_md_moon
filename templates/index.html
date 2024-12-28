@@ -755,22 +755,44 @@ document.addEventListener('DOMContentLoaded', function() {
     const fileList = document.getElementById('fileList');
     const uploadForm = document.getElementById('uploadForm');
 
-    dropZone.addEventListener('dragover', (e) => {
+    // 阻止默认拖拽行为
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
         e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // 处理拖拽状态的视觉反馈
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
         dropZone.classList.add('dragover');
-    });
+    }
 
-    dropZone.addEventListener('dragleave', () => {
+    function unhighlight(e) {
         dropZone.classList.remove('dragover');
-    });
+    }
 
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-        const files = e.dataTransfer.files;
+    // 处理文件拖放
+    dropZone.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
         handleFiles(files);
-    });
+    }
 
+    // 处理文件选择
     dropZone.addEventListener('click', () => {
         fileInput.click();
     });
@@ -805,11 +827,14 @@ document.addEventListener('DOMContentLoaded', function() {
 async function handleFiles(files) {
     const fileList = document.getElementById('fileList');
     fileList.innerHTML = '';
+    let hasValidFiles = false;
+
     for (const file of files) {
         if (!file.name.toLowerCase().endsWith('.md')) {
-            await showAlert('只支持上传.md文件');
+            await showAlert('只支持上传.md文件: ' + file.name);
             continue;
         }
+        hasValidFiles = true;
         const item = document.createElement('div');
         item.className = 'preview-item';
         item.innerHTML = `
@@ -818,7 +843,20 @@ async function handleFiles(files) {
         `;
         fileList.appendChild(item);
     }
-    document.querySelector('.file-preview').style.display = 'block';
+
+    if (hasValidFiles) {
+        document.querySelector('.file-preview').style.display = 'block';
+        // 更新文件输入框的文件
+        const dataTransfer = new DataTransfer();
+        Array.from(files).forEach(file => {
+            if (file.name.toLowerCase().endsWith('.md')) {
+                dataTransfer.items.add(file);
+            }
+        });
+        fileInput.files = dataTransfer.files;
+    } else {
+        document.querySelector('.file-preview').style.display = 'none';
+    }
 }
 
 // 文件大小格式化
