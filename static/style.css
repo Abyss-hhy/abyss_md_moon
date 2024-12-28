@@ -1,406 +1,817 @@
-/* 重置默认样式 */
+/* 基础颜色变量 */
+:root {
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
+  
+  --accent-500: #22c55e;
+  --accent-600: #16a34a;
+  
+  --danger-500: #ef4444;
+  --danger-600: #dc2626;
+  
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-800: #1f2937;
+
+  /* 阴影变量 */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+
+  /* 字体变量 */
+  --font-sans: "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+  
+  /* 字体大小变量 */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+}
+
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: var(--font-sans);  /* 默认字体 */
 }
 
 body, html {
-    height: 100%;
-    font-family: "Microsoft YaHei", Arial, sans-serif;
-    background: #f9f9f9;
-    color: #333;
-    font-size: 32px;
+  height: 100%;
+  font-family: var(--font-sans);
+  background: var(--gray-50);
+  color: var(--gray-800);
+  font-size: var(--text-base);
 }
 
 body {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* 不出现全局滚动条，由内部面板滚动 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-/* 头部：网站名->排序->搜索(居中)->新建->上传 */
+/* 头部样式优化 */
 .header {
-    background: #333;
-    color: #fff;
-    position: relative; /* 让搜索框可用绝对定位居中？ 或者其它方式 */
-    display: flex;
-    align-items: center;
-    padding: 20px;
-    flex: 0 0 auto;
-    justify-content: flex-start;
+  background: linear-gradient(135deg, var(--primary-900), var(--primary-700));
+  color: white;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  flex: 0 0 auto;
+  justify-content: flex-start;
+  box-shadow: var(--shadow-lg);
 }
 
 .header .logo {
-    font-size: 40px;
-    font-weight: bold;
-    margin-right: 40px;
+  font-size: var(--text-xl);
+  font-weight: bold;
+  margin-right: 40px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
 }
 
 .sort-container {
-    font-size:32px;
-    margin-right: 40px;
+  font-size: var(--text-base);
+  margin-right: 40px;
 }
 
-/* 搜索居中: 让其flex=1, 并 margin:0 auto?
-   也可用 position:absolute; left:50%; transform:translateX(-50%);
-   这里改用一个简单的flex:1加 justify-content */
 .search-container {
-    display: flex;
-    align-items: center;
-    margin: 0 auto; /* 让搜索框在整条header里居中 */
+  display: flex;
+  align-items: center;
+  margin: 0 auto;
 }
 
 .search-container input {
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 32px;
-    margin-right: 10px;
+  padding: 6px;
+  border-radius: 10px;
+  border: none;
+  font-size: var(--text-base);
+  font-family: var(--font-sans);
+  margin-right: 10px;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  color: white;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* 新建/上传保持最右 */
+.search-container input::placeholder {
+  color: rgba(255,255,255,0.7);
+}
+
+.search-container input:focus {
+  background: white;
+  color: var(--gray-800);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-100);
+}
+
+/* 按钮样式优化 */
 .btn {
-    background: #eee;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 12px 24px;
-    text-decoration: none;
-    color: #333;
-    cursor: pointer;
-    margin-left: 20px;
-    font-size: 32px;
+  padding: 6px 12px;
+  border-radius: 5px;
+  border: none;
+  font-size: var(--text-base);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 10px;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .btn:hover {
-    background: #ddd;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn.primary {
-    background: #4CAF50;
-    color: #fff;
-    border: none;
-}
-
-.btn.primary:hover {
-    background: #45a049;
+  background: linear-gradient(135deg, var(--accent-500), var(--accent-600));
+  color: white;
 }
 
 .btn.danger {
-    background: #f44336;
-    color: #fff;
-    border: none;
+  background: var(--danger-500);
+  color: white;
 }
 
-.btn.danger:hover {
-    background: #da190b;
+/* 主体布局 */
+.main {
+  flex: 1 1 auto;
+  display: flex;
+  overflow: hidden;
 }
 
-.btn.secondary {
-    background: #008CBA;
-    color: #fff;
-    border: none;
+/* 左侧面板 */
+.left-panel {
+  width: 35%;
+  background: white;
+  font-size: var(--text-base);
+  border-right: 1px solid var(--gray-200);
+  box-shadow: 2px 0 5px rgba(0,0,0,0.03);
+  display: flex;
+  flex-direction: column;  /* 垂直布局 */
+  height: 100%;
 }
 
-.btn.secondary:hover {
-    background: #007bb5;
+/* 固定在顶部的操作区域 */
+.operations-area {
+  padding: 0.75rem;
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  flex-shrink: 0;  /* 防止内容压缩 */
+}
+
+/* 可滚动的文件列表区域 */
+.files-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem;
+}
+
+/* 滚动条样式保持不变 */
+.files-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.files-area::-webkit-scrollbar-track {
+  background: var(--gray-100);
+  border-radius: 4px;
+}
+
+.files-area::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 4px;
+}
+
+.files-area::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-400);
+}
+
+/* 美化滚动条 */
+.left-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.left-panel::-webkit-scrollbar-track {
+  background: var(--gray-100);
+  border-radius: 4px;
+}
+
+.left-panel::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 4px;
+}
+
+.left-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-400);
+}
+
+/* 文件夹导航美化 */
+.folder-nav {
+  margin-bottom: 1.5rem;
 }
 
 .back-button {
-    background: #ff9800;
-    color: #fff;
-    border: none;
+  width: 100%;
+  padding: 1rem;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.back-button:before {
+  content: "←";
+  font-size: 1.2em;
 }
 
 .back-button:hover {
-    background: #e68a00;
+  background: var(--primary-50);
+  border-color: var(--primary-200);
+  transform: translateX(-4px);
 }
 
-/* 主体：左右面板(1:3) */
-.main {
-    flex: 1 1 auto;
-    display: flex;
-    overflow: hidden;
+/* 新建文件夹区域美化 */
+.folder-ops {
+  background: var(--gray-50);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
 }
 
-.footer {
-    text-align: center;
-    font-size: 24px;
-    padding: 20px;
-    background: #f0f0f0;
-    color: #333;
-    flex: 0 0 auto;
-}
-
-/* 左侧1/4 */
-.left-panel {
-    width: 25%;
-    border-right: 1px solid #ccc;
-    padding: 20px;
-    overflow: auto;
-    background: #fff;
-    font-size:32px;
-}
-
+/* 批量操作区域美化 */
 .batch-operations {
-    margin-bottom: 20px;
+  background: var(--gray-50);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .batch-operations form {
-    display: inline-block;
-    margin-right: 10px;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
-.folder-list ul, .file-list ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.folder-list li, .file-list li {
-    margin-bottom: 20px;
-    font-size:32px;
-}
-
+/* 文件列表美化 */
 .file-item {
-    background: #fafafa;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 1px 1px rgba(0,0,0,0.1);
-    position: relative;
-    cursor: pointer;
+  background: white;
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.file-item:hover {
+  border-color: var(--primary-200);
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md);
 }
 
 .file-item.selected {
-    background: #cce5ff;
+  background: var(--primary-50);
+  border-color: var(--primary-300);
 }
 
-.rename-form {
-    margin-left: 20px;
-    vertical-align: middle;
+/* 文件信息布局优化 */
+.file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
 }
 
-.rename-button {
-    background: #ffeb3b;
-    color: #333;
+.file-name {
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--gray-800);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.rename-button:hover {
-    background: #fdd835;
+.file-meta {
+  font-size: var(--text-sm);
+  color: var(--gray-500);
 }
 
-.open-button {
-    background: #2196F3;
-    color: #fff;
+/* 文件操作按钮组 */
+.file-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
 }
 
-.open-button:hover {
-    background: #1e88e5;
+.file-actions .btn {
+  margin: 0;
+  padding: 0.5rem 1rem;
+  white-space: nowrap;
+  height: fit-content;
 }
 
-.file-info {}
-
-.folder-list li a, .file-list li a {
-    color: #333;
-    text-decoration: none;
+/* 个人文件用户名输入框样式 */
+.file-actions .input-text.short-input {
+  width: 120px;
+  padding: 0.5rem;
+  margin: 0;
+  height: fit-content;
 }
 
-.folder-list li a:hover, .file-list li a:hover {
-    text-decoration: underline;
+/* 删除表单样式 */
+.file-actions form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
 }
 
-.input-text {
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size:32px;
-    margin: 0 10px 10px 0;
+/* 上传模态框优化 */
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.short-input {
-    width: 200px;
+/* 拖拽上传区域独立 */
+.upload-area {
+  border: 3px dashed var(--gray-300);
+  border-radius: 16px;
+  padding: 3rem 2rem;
+  text-align: center;
+  background: var(--gray-50);
+  transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-/* 右侧3/4 */
-.right-panel {
-    width: 75%;
-    padding: 20px;
-    overflow: auto;
-    background: #fff;
-    font-size:32px;
-    display: flex;
-    flex-direction: column;
+/* 上传选项区域 */
+.upload-options {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--gray-200);
 }
 
-.top-line {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
+.owner-type-section {
+  margin-bottom: 1.5rem;
 }
 
-.top-line .file-title {
-    flex: 1;
-    font-size: 36px;
-    font-weight: bold;
-}
-
-.top-line .file-actions {
-    flex: 0 0 auto;
-}
-
-/* 文件内容区 */
-.md-content {
-    background: #fefefe;
-    border: 1px solid #ccc;
-    padding: 20px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-family: Consolas, "Courier New", monospace;
-    border-radius: 8px;
-    font-size:32px;
-}
-
-.editor-container {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    overflow: auto;
-    margin-top: 10px;
-}
-
-.textarea {
-    width: 100%;
-    padding: 20px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size:32px;
-    font-family: Consolas, "Courier New", monospace;
-}
-
-.flashes {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 20px 0;
-}
-
-.flashes li {
-    background: #ffdddd;
-    border-left: 6px solid #f44336;
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 4px;
-}
-
-/* 小屏(你指定2000px为阈值) -> 上下布局 */
-@media (max-width: 2000px) {
-    .main {
-        flex-direction: column;
-    }
-    .left-panel, .right-panel {
-        width: 100%;
-        margin: 0;
-        padding: 20px;
-    }
-    .header {
-        flex-wrap: wrap;
-        padding: 10px;
-        /* search-container要重置绝对定位 */
-        position: static;
-    }
-    .header .logo {
-        font-size: 30px;
-        margin-right: 20px;
-        margin-bottom: 10px;
-    }
-    .sort-container {
-        margin-right: 20px;
-        margin-bottom: 10px;
-    }
-    .search-container {
-        margin: 0 auto;
-        margin-bottom: 10px;
-        position: static;
-        transform: none;
-    }
-    .search-container input {
-        font-size: 28px;
-        padding: 8px;
-    }
-    .btn {
-        margin-left: 10px;
-        font-size: 28px;
-        padding: 8px 16px;
-    }
-    .back-button {
-        font-size: 28px;
-    }
-    .md-content {
-        font-size:28px;
-    }
-    .input-text {
-        font-size:28px;
-    }
-    .textarea {
-        font-size:28px;
-    }
-    .left-panel {
-        max-height: 40vh;
-    }
-    .right-panel {
-        max-height: 60vh;
-    }
-}
-
-/* 上传页面居中，已做对齐 */
-.upload-page-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex: 1 1 auto;
-    font-size: 36px;
-}
-
-.upload-container {
-    max-width: 900px;
-    width: 100%;
-    background: #fff;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 40px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.upload-container h1 {
-    font-size: 48px;
-    margin-bottom: 40px;
-    text-align: center;
-}
-
-.upload-container label {
-    font-size:36px;
-    margin: 20px 0 10px 0;
-    display:block;
-}
-
-.upload-container input[type="file"] {
-    margin-bottom: 40px;
-    font-size:36px;
+.section-title {
+  font-size: var(--text-base);
+  color: var(--gray-700);
+  margin-bottom: 1rem;
 }
 
 .owner-type {
-    margin: 20px 0;
-    font-size:36px;
-    display: flex;
-    align-items:center;
+  display: flex;
+  gap: 2rem;
+  padding: 1rem;
+  background: var(--gray-50);
+  border-radius: 8px;
 }
 
-.owner-type input[type="radio"] {
-    transform: scale(1.8);
-    margin-right: 10px;
+#upload_owner_input {
+  padding: 1rem;
+  background: var(--primary-50);
+  border-radius: 8px;
+  border-left: 4px solid var(--primary-400);
 }
 
-.upload-container button {
-    font-size:36px;
-    padding: 18px 36px;
-    margin-top:20px;
+/* 文件预览区域美化 */
+.file-preview {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--gray-200);
+}
+
+.preview-title {
+  font-size: var(--text-base);
+  color: var(--gray-700);
+  margin-bottom: 1rem;
+}
+
+.preview-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--gray-50);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+/* 右侧面板 */
+.right-panel {
+  width: 65%;
+  padding: 20px;
+  overflow: auto;
+  background: white;
+  font-size: var(--text-base);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Markdown内容样式 */
+.md-content {
+  background: white;
+  border: 1px solid var(--gray-200);
+  padding: 20px;
+  border-radius: 12px;
+  font-size: var(--text-base);
+  font-family: var(--font-sans);
+  line-height: 1.8;
+  box-shadow: var(--shadow-sm);
+  
+  /* 代码块样式 */
+  pre {
+    background: var(--gray-50);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+  
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    padding: 0.2em 0.4em;
+    background: var(--gray-100);
+    border-radius: 4px;
+  }
+  
+  /* 表格样式 */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1rem 0;
+  }
+  
+  th, td {
+    border: 1px solid var(--gray-200);
+    padding: 0.5rem;
+    text-align: left;
+  }
+  
+  th {
+    background: var(--gray-50);
+  }
+  
+  /* 图片样式 */
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 1rem 0;
+  }
+  
+  /* 引用样式 */
+  blockquote {
+    border-left: 4px solid var(--primary-300);
+    margin: 1rem 0;
+    padding: 0.5rem 1rem;
+    background: var(--primary-50);
+    border-radius: 4px;
+  }
+  
+  /* 列表样式 */
+  ul, ol {
+    padding-left: 2rem;
+    margin: 1rem 0;
+  }
+  
+  /* 标题样式 */
+  h1, h2, h3, h4, h5, h6 {
+    margin: 1.5rem 0 1rem;
+    line-height: 1.4;
+  }
+  
+  /* 链接样式 */
+  a {
+    color: var(--primary-600);
+    text-decoration: none;
+  }
+  
+  a:hover {
+    text-decoration: underline;
+  }
+  
+  /* 水平线样式 */
+  hr {
+    border: none;
+    height: 1px;
+    background: var(--gray-200);
+    margin: 2rem 0;
+  }
+  
+  /* 代码高亮 */
+  .highlight {
+    background: var(--gray-50);
+    border-radius: 8px;
+    margin: 1rem 0;
+  }
+  
+  .highlight pre {
+    padding: 1rem;
+    overflow-x: auto;
+  }
+  
+  /* 脚注样式 */
+  .footnote {
+    font-size: 0.9em;
+    color: var(--gray-500);
+  }
+}
+
+/* 编辑器容器样式 */
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 200px);  /* 减去头部和其他元素的高度 */
+  margin-top: 20px;
+}
+
+/* 编辑器样式 */
+.textarea {
+  width: 100%;
+  flex: 1;  /* 让文本框占据剩余空间 */
+  min-height: 500px;  /* 最小高度 */
+  padding: 20px;
+  border: 2px solid var(--gray-200);
+  border-radius: 12px;
+  font-size: var(--text-base);
+  font-family: var(--font-mono);
+  line-height: 1.6;
+  resize: vertical;  /* 允许垂直调整大小 */
+  transition: all 0.2s ease;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.textarea:focus {
+  border-color: var(--primary-400);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-100);
+}
+
+/* 编辑表单样式 */
+#edit_form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;  /* 占满容器高度 */
+  gap: 1rem;
+}
+
+/* 分割线美化 */
+hr {
+  border: none;
+  height: 2px;
+  background: linear-gradient(to right, var(--gray-200), transparent);
+  margin: 20px 0;
+}
+
+/* 底部样式 */
+.footer {
+  background: var(--gray-800);
+  color: white;
+  text-align: center;
+  padding: 20px;
+  font-size: var(--text-sm);
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+}
+
+/* 响应式调整保持不变 */
+@media (max-width: 1000px) {
+  .main {
+    flex-direction: column;
+  }
+  .left-panel, .right-panel {
+    width: 100%;
+    max-width: none;
+  }
+  .header {
+    padding: 1rem;
+  }
+  .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: var(--text-sm);
+  }
+  .left-panel {
+    max-height: 45vh;
+  }
+  .right-panel {
+    max-height: 55vh;
+  }
+  
+  body {
+    font-size: var(--text-sm);
+  }
+  
+  .header .logo {
+    font-size: var(--text-lg);
+  }
+  
+  /* 移动端按钮样式优化 */
+  .file-actions {
+    justify-content: flex-start;
+    gap: 0.3rem;
+  }
+  
+  .file-actions .btn {
+    padding: 0.3rem 0.8rem;
+    font-size: var(--text-sm);
+  }
+}
+
+/* 模态框样式 */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 800px;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal h2 {
+  font-size: var(--text-lg);
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: var(--gray-800);
+}
+
+/* 上传区域样式 */
+.upload-area {
+  border: 3px dashed var(--gray-300);
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+  background: var(--gray-50);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.upload-area:hover,
+.upload-area.dragover {
+  border-color: var(--primary-400);
+  background: var(--primary-50);
+}
+
+.upload-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--gray-400);
+}
+
+.upload-text {
+  font-size: var(--text-base);
+  color: var(--gray-600);
+  margin-bottom: 0.5rem;
+}
+
+.upload-subtext {
+  font-size: var(--text-sm);
+  color: var(--gray-400);
+}
+
+/* 文件输入框隐藏 */
+.file-input {
+  display: none;
+}
+
+/* 上传进度条 */
+.upload-progress {
+  margin-top: 1.5rem;
+  display: none;
+}
+
+.progress-bar {
+  height: 8px;
+  background: var(--gray-200);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--primary-500);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+/* 文件预览区域 */
+.file-preview {
+  margin-top: 1.5rem;
+  display: none;
+}
+
+.preview-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.preview-item-name {
+  color: var(--gray-800);
+}
+
+.preview-item-size {
+  color: var(--gray-500);
+  font-size: var(--text-sm);
+}
+
+/* 模态框按钮 */
+.modal-buttons {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+/* 重命名表单样式优化 */
+.rename-form {
+  position: absolute;
+  right: 1.5rem;
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+}
+
+/* 文件夹样式特殊处理 */
+.folder-item .file-name {
+  color: var(--primary-600);
+  font-weight: 600;
+}
+
+.folder-item .file-icon {
+  color: var(--primary-500);
+}
+
+/* 文件图标样式 */
+.file-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 5px;
+}
+
+/* 文件夹图标 */
+.folder-item .file-icon {
+  color: var(--primary-600);
+  background: var(--primary-50);
+}
+
+/* Markdown文件图标 */
+.file-item:not(.folder-item) .file-icon {
+  color: var(--accent-600);
+  background: var(--accent-50);
 }

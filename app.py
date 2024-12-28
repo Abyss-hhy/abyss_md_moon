@@ -8,6 +8,9 @@ import zipfile
 import io
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash
+from markdown.extensions import fenced_code, tables, attr_list, def_list
+from markdown.extensions import codehilite, footnotes, meta, toc
+from markdown.extensions import nl2br, sane_lists, smarty, wikilinks
 
 app = Flask(__name__)
 app.secret_key = 'some_secret_key'
@@ -34,10 +37,34 @@ def save_metadata(data):
 def format_timestamp(ts):
     return datetime.fromtimestamp(int(ts)).strftime('%Y-%m-%d %H:%M:%S')
 
-def is_valid_name(name):
-    # 不允许中文，仅限字母、数字、下划线、点和横杠
-    pattern = re.compile(r'^[A-Za-z0-9._-]+$')
-    return bool(pattern.match(name))
+def is_valid_name(filename):
+    """
+    验证文件名是否合法
+    允许:
+    - 中文字符
+    - 英文字母
+    - 数字
+    - 常用标点符号和特殊字符
+    禁止:
+    - 文件系统的特殊字符 (/ \ : * ? " < > |)
+    - 以点(.)开头的文件名
+    """
+    # 禁止的字符
+    forbidden_chars = r'[/\\:*?"<>|]'
+    
+    # 检查是否包含禁止的字符
+    if re.search(forbidden_chars, filename):
+        return False
+    
+    # 检查是否以点开头
+    if filename.startswith('.'):
+        return False
+    
+    # 检查长度
+    if len(filename) == 0 or len(filename.encode('utf-8')) > 255:
+        return False
+    
+    return True
 
 def list_all_dirs():
     # 用 '/' 表示根目录
@@ -55,6 +82,40 @@ def list_all_dirs():
     dir_list = list(dir_set)
     dir_list.sort()
     return dir_list
+
+def render_markdown(content):
+    """
+    渲染Markdown内容，支持更多特性
+    """
+    # 统一换行符
+    content = content.replace('\r\n', '\n')
+    
+    md = markdown.Markdown(
+        extensions=[
+            'fenced_code',
+            'codehilite',
+            'tables',
+            'attr_list',
+            'def_list',
+            'footnotes',
+            'meta',
+            'toc',
+            'sane_lists',    # 移除nl2br扩展，避免自动添加额外换行
+            'smarty',
+            'wikilinks',
+        ],
+        extension_configs={
+            'codehilite': {
+                'css_class': 'highlight',
+                'linenums': True,
+                'guess_lang': True
+            },
+            'toc': {
+                'permalink': True
+            }
+        }
+    )
+    return md.convert(content)
 
 @app.route('/')
 def index():
@@ -138,14 +199,14 @@ def index():
                     if os.path.exists(selected_full_path):
                         with open(selected_full_path, 'r', encoding='utf-8') as f:
                             selected_file_content = f.read()
-                        selected_file_html = markdown.markdown(selected_file_content)
+                        selected_file_html = render_markdown(selected_file_content)
                 else:
                     need_auth_to_view = True
             else:
                 if os.path.exists(selected_full_path):
                     with open(selected_full_path, 'r', encoding='utf-8') as f:
                         selected_file_content = f.read()
-                    selected_file_html = markdown.markdown(selected_file_content)
+                    selected_file_html = render_markdown(selected_file_content)
 
     all_dirs = list_all_dirs()
 
@@ -203,38 +264,70 @@ def create_new_file():
     flash("新建文件成功")
     return redirect(url_for('index', dir=current_dir, selected=new_name))
 
-@app.route('/upload')
-def upload_page():
-    current_dir = request.args.get('dir', '')
-    return render_template('upload.html', current_dir=current_dir)
-
 @app.route('/upload_file', methods=['POST'])
 def upload_file():
-    current_dir = request.form.get('dir', '')
-    browse_path = os.path.join(UPLOAD_FOLDER, current_dir)
-
-    files = request.files.getlist('file')
+    current_dir = request.form.get('dir', '').strip()
     owner_type = request.form.get('owner_type', 'shared')
     owner_user = request.form.get('owner_user', '').strip()
-
+    
+    if 'file' not in request.files:
+        flash('没有选择文件')
+        return redirect(url_for('index', dir=current_dir))
+    
+    files = request.files.getlist('file')
+    if not files or all(file.filename == '' for file in files):
+        flash('没有选择文件')
+        return redirect(url_for('index', dir=current_dir))
+    
+    # 确保上传目录存在
+    upload_path = os.path.join(UPLOAD_FOLDER, current_dir)
+    if not os.path.exists(upload_path):
+        os.makedirs(upload_path)
+    
     metadata = load_metadata()
-
+    success_count = 0
+    error_files = []
+    
     for file in files:
-        if file:
-            original_name = file.filename
-            ts = str(int(time.time()))
-            new_filename = f"{ts}_{original_name}"
-            save_path = os.path.join(browse_path, new_filename)
-            file.save(save_path)
-
-            metadata[new_filename] = {
-                "original_name": original_name,
-                "upload_time": ts,
-                "edit_time": ts,
-                "owner": owner_user if owner_type == 'personal' and owner_user else 'shared'
-            }
-
+        if file and file.filename:
+            filename = file.filename
+            
+            # 检查文件类型
+            if not filename.lower().endswith('.md'):
+                error_files.append(f"{filename} (不支持的文件类型)")
+                continue
+            
+            # 检查文件名是否合法
+            if not is_valid_name(filename):
+                error_files.append(f"{filename} (文件名不能包含以下字符: / \\ : * ? \" < > | 且不能以.开头)")
+                continue
+            
+            filepath = os.path.join(upload_path, filename)
+            
+            # 检查文件是否已存在
+            if os.path.exists(filepath):
+                error_files.append(f"{filename} (文件已存在)")
+                continue
+            
+            try:
+                file.save(filepath)
+                metadata[filename] = {
+                    'original_name': filename,
+                    'upload_time': str(int(time.time())),
+                    'edit_time': str(int(time.time())),
+                    'owner': owner_user if owner_type == 'personal' else 'shared'
+                }
+                success_count += 1
+            except Exception as e:
+                error_files.append(f"{filename} (保存失败: {str(e)})")
+    
     save_metadata(metadata)
+    
+    if success_count > 0:
+        flash(f'成功上传 {success_count} 个文件')
+    if error_files:
+        flash('以下文件上传失败：\n' + '\n'.join(error_files))
+    
     return redirect(url_for('index', dir=current_dir))
 
 @app.route('/download/<path:filepath>')
@@ -354,34 +447,32 @@ def move_selected():
 def update_file():
     current_dir = request.form.get('dir', '')
     filename = request.form.get('filename', '')
-    owner_user_input = request.form.get('owner_user', '').strip()
-    new_content = request.form.get('content', '')
+    content = request.form.get('content', '')
+    owner_user = request.form.get('owner_user', '').strip()
 
-    browse_path = os.path.join(UPLOAD_FOLDER, current_dir)
-    full_path = os.path.join(browse_path, filename)
-
-    if not os.path.exists(full_path):
+    # 移除Windows风格的换行符，统一使用Unix风格
+    content = content.replace('\r\n', '\n')
+    
+    file_path = os.path.join(UPLOAD_FOLDER, current_dir, filename)
+    metadata = load_metadata()
+    
+    if filename not in metadata:
         flash("文件不存在")
         return redirect(url_for('index', dir=current_dir))
-
-    metadata = load_metadata()
-    file_meta = metadata.get(filename, {})
-    file_owner = file_meta.get('owner', 'shared')
-
-    if file_owner != 'shared':
-        if owner_user_input != file_owner:
-            flash("用户名不匹配，无权编辑此文件")
-            return redirect(url_for('index', dir=current_dir, selected=filename))
-
-    with open(full_path, 'w', encoding='utf-8') as f:
-        f.write(new_content)
-
+    
+    file_meta = metadata[filename]
+    if file_meta.get('owner', 'shared') != 'shared' and file_meta.get('owner') != owner_user:
+        flash("无权限编辑此文件")
+        return redirect(url_for('index', dir=current_dir, selected=filename))
+    
+    with open(file_path, 'w', encoding='utf-8', newline='\n') as f:  # 指定newline参数
+        f.write(content)
+    
     file_meta['edit_time'] = str(int(time.time()))
-    metadata[filename] = file_meta
     save_metadata(metadata)
-
-    flash("文件已保存")
-    return redirect(url_for('index', dir=current_dir, selected=filename, auth_user=owner_user_input if file_owner!='shared' else ''))
+    
+    flash("文件保存成功")
+    return redirect(url_for('index', dir=current_dir, selected=filename))
 
 @app.route('/delete_item/<path:filepath>', methods=['POST'])
 def delete_item(filepath):
