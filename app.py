@@ -564,8 +564,8 @@ def update_file():
     current_dir = request.form.get('dir', '')
     filename = request.form.get('filename', '')
     content = request.form.get('content', '')
-    owner_user = request.form.get('owner_user', '').strip()
-
+    auth_user = request.form.get('auth_user', '')
+    
     # 处理路径中的特殊字符
     current_dir = unquote(current_dir)
     filename = unquote(filename)
@@ -578,32 +578,22 @@ def update_file():
     if not os.path.exists(file_path):
         flash(f"文件不存在: {filename}")
         return redirect(url_for('index', dir=current_dir))
-        
-    if filename not in metadata:
-        metadata[filename] = {
-            "original_name": filename,
-            "upload_time": str(int(time.time())),
-            "edit_time": str(int(time.time())),
-            "owner": "shared"
-        }
-    
-    file_meta = metadata[filename]
-    if file_meta.get('owner', 'shared') != 'shared' and file_meta.get('owner') != owner_user:
-        flash("无权限编辑此文件")
-        return redirect(url_for('index', dir=current_dir, selected=filename))
     
     try:
-        with open(file_path, 'w', encoding='utf-8') as f:
+        # 规范化换行符，移除多余的空行
+        content = content.replace('\r\n', '\n').replace('\r', '\n')  # 统一换行符
+        content = '\n'.join(line.rstrip() for line in content.splitlines())  # 移除每行末尾的空白字符
+        
+        with open(file_path, 'w', encoding='utf-8', newline='\n') as f:
             f.write(content)
         
-        file_meta['edit_time'] = str(int(time.time()))
+        metadata[filename]['edit_time'] = str(int(time.time()))
         save_metadata(metadata)
-        
         flash("文件保存成功")
     except Exception as e:
         flash(f"保存失败: {str(e)}")
-        
-    return redirect(url_for('index', dir=current_dir, selected=filename))
+    
+    return redirect(url_for('index', dir=current_dir, selected=filename, auth_user=auth_user))
 
 @app.route('/delete_item/<path:filepath>', methods=['POST'])
 def delete_item(filepath):

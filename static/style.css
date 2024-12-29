@@ -1213,3 +1213,48 @@ button[onclick*="batchDownload"]:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(34, 197, 94, 0.2);
 }
+
+/* 个人文件按钮样式 */
+[data-owner]:not([data-owner="shared"]) .file-actions .btn {
+    background: #f59e0b;  /* 黄色 */
+    color: white;
+    border: none;
+}
+
+[data-owner]:not([data-owner="shared"]) .file-actions .btn:hover {
+    background: #d97706;  /* 深黄色 */
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+}
+
+/* 保持删除按钮的红色 */
+[data-owner]:not([data-owner="shared"]) .file-actions .btn.danger {
+    background: #f59e0b;
+}
+
+[data-owner]:not([data-owner="shared"]) .file-actions .btn.danger:hover {
+    background: #d97706;
+}
+
+/* 闪现消息样式 */
+.flashes {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+/* 错误消息样式 */
+.flashes li:not(:empty) {
+    display: block;
+    padding: 0.5rem 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+/* 成功消息样式 */
+.flashes li:not([class*="error"]) {
+    color: var(--accent-500);
+    background: var(--accent-50);
+    border-left-color: var(--accent-500);
+}
