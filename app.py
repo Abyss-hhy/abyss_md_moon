@@ -126,6 +126,10 @@ def normalize_path(path):
     return path
 
 @app.route('/')
+def welcome():
+    return render_template('welcome.html')
+
+@app.route('/home')
 def index():
     current_dir = request.args.get('dir', '')
     sort_by = request.args.get('sort_by', 'name')
