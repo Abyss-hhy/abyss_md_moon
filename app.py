@@ -144,24 +144,28 @@ def index():
                     continue
             folders.append(item)
         else:
-            if item.lower().endswith('.md'):
-                file_meta = metadata.get(item, {})
-                original_name = file_meta.get('original_name', item)
-                upload_time = file_meta.get('upload_time', '')
-                edit_time = file_meta.get('edit_time', '')
-                owner = file_meta.get('owner', 'shared')
-                if search_keyword:
-                    if search_keyword.lower() not in original_name.lower():
-                        continue
-                formatted_upload_time = format_timestamp(upload_time) if upload_time else ''
-                formatted_edit_time = format_timestamp(edit_time) if edit_time else ''
-                files.append({
-                    'name': item,
-                    'original_name': original_name,
-                    'upload_time': formatted_upload_time,
-                    'edit_time': formatted_edit_time,
-                    'owner': owner
-                })
+            file_meta = metadata.get(item, {})
+            original_name = file_meta.get('original_name', item)
+            upload_time = file_meta.get('upload_time', '')
+            edit_time = file_meta.get('edit_time', '')
+            owner = file_meta.get('owner', 'shared')
+            if search_keyword:
+                if search_keyword.lower() not in original_name.lower():
+                    continue
+            formatted_upload_time = format_timestamp(upload_time) if upload_time else ''
+            formatted_edit_time = format_timestamp(edit_time) if edit_time else ''
+            
+            # 获取文件扩展名
+            ext = os.path.splitext(item)[1].lower()
+            
+            files.append({
+                'name': item,
+                'original_name': original_name,
+                'upload_time': formatted_upload_time,
+                'edit_time': formatted_edit_time,
+                'owner': owner,
+                'extension': ext  # 添加扩展名信息
+            })
 
     def sort_key(f):
         if sort_by == 'name':
@@ -295,11 +299,6 @@ def upload_file():
         if file and file.filename:
             filename = file.filename
             
-            # 检查文件类型
-            if not filename.lower().endswith('.md'):
-                error_files.append(f"{filename} (不支持的文件类型)")
-                continue
-            
             # 检查文件名是否合法
             if not is_valid_name(filename):
                 error_files.append(f"{filename} (文件名不能包含以下字符: / \\ : * ? \" < > | 且不能以.开头)")
@@ -356,10 +355,9 @@ def download_selected():
     with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
         for file in selected_files:
             file_path = os.path.join(UPLOAD_FOLDER, dir_path, file)
-            if os.path.isfile(file_path) and file.lower().endswith('.md'):
+            if os.path.isfile(file_path):
                 zf.write(file_path, arcname=file)
     memory_file.seek(0)
-    # 修正：使用 download_name
     return send_file(memory_file, as_attachment=True, download_name='selected_files.zip')
 
 @app.route('/delete_selected', methods=['POST'])

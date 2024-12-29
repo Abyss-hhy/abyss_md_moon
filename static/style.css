@@ -978,9 +978,55 @@ hr {
 }
 
 /* Markdown文件图标 */
-.file-item:not(.folder-item) .file-icon {
+.file-item[data-ext=".md"] .file-icon {
   color: var(--accent-600);
   background: var(--accent-50);
+}
+
+/* 文本文件图标 */
+.file-item[data-ext=".txt"] .file-icon,
+.file-item[data-ext=".log"] .file-icon {
+  color: var(--gray-600);
+  background: var(--gray-100);
+}
+
+/* 图片文件图标 */
+.file-item[data-ext=".jpg"] .file-icon,
+.file-item[data-ext=".jpeg"] .file-icon,
+.file-item[data-ext=".png"] .file-icon,
+.file-item[data-ext=".gif"] .file-icon {
+  color: #ff9800;
+  background: #fff3e0;
+}
+
+/* 文档文件图标 */
+.file-item[data-ext=".doc"] .file-icon,
+.file-item[data-ext=".docx"] .file-icon,
+.file-item[data-ext=".pdf"] .file-icon {
+  color: #e53935;
+  background: #ffebee;
+}
+
+/* 表格文件图标 */
+.file-item[data-ext=".xls"] .file-icon,
+.file-item[data-ext=".xlsx"] .file-icon,
+.file-item[data-ext=".csv"] .file-icon {
+  color: #2e7d32;
+  background: #e8f5e9;
+}
+
+/* 压缩文件图标 */
+.file-item[data-ext=".zip"] .file-icon,
+.file-item[data-ext=".rar"] .file-icon,
+.file-item[data-ext=".7z"] .file-icon {
+  color: #6d4c41;
+  background: #efebe9;
+}
+
+/* 其他文件图标 */
+.file-item:not([data-ext]) .file-icon {
+  color: var(--gray-500);
+  background: var(--gray-100);
 }
 
 /* 文件夹操作区域样式 */

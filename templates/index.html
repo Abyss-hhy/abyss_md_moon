@@ -546,8 +546,16 @@
             <div class="file-list">
                 <ul>
                 {% for f in files %}
-                    <li class="file-item" data-filename="{{ f.name }}" data-owner="{{ f.owner }}">
-                        <div class="file-icon">📄</div>
+                    <li class="file-item" data-filename="{{ f.name }}" data-owner="{{ f.owner }}" data-ext="{{ f.extension }}">
+                        <div class="file-icon">
+                            {% if f.extension == '.md' %}📝
+                            {% elif f.extension in ['.jpg', '.jpeg', '.png', '.gif'] %}🖼️
+                            {% elif f.extension in ['.doc', '.docx', '.pdf'] %}📄
+                            {% elif f.extension in ['.xls', '.xlsx', '.csv'] %}📊
+                            {% elif f.extension in ['.zip', '.rar', '.7z'] %}📦
+                            {% else %}📎
+                            {% endif %}
+                        </div>
                         <div class="file-info">
                             <div class="file-name">{{ f.original_name }}</div>
                             <div class="file-meta">
@@ -556,7 +564,9 @@
                         </div>
                         
                         <div class="file-actions">
-                            <a href="?dir={{ current_dir }}&selected={{ f.name }}" class="btn open-button">打开</a>
+                            {% if f.name.lower().endswith('.md') %}
+                                <a href="?dir={{ current_dir }}&selected={{ f.name }}" class="btn open-button">打开</a>
+                            {% endif %}
                             {% if f.owner == 'shared' %}
                                 <a class="btn" href="{{ url_for('download_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}">下载</a>
                             {% else %}
@@ -690,12 +700,12 @@
     <div class="upload-area" id="dropZone">
       <div class="upload-icon">📁</div>
       <div class="upload-text">拖拽文件到此处或点击选择文件</div>
-      <div class="upload-subtext">支持 .md 文件</div>
+      <div class="upload-subtext">支持所有类型文件</div>
     </div>
 
     <form id="uploadForm" action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
       <input type="hidden" name="dir" value="{{ current_dir }}">
-      <input type="file" name="file" id="fileInput" class="file-input" multiple accept=".md">
+      <input type="file" name="file" id="fileInput" class="file-input" multiple>
       
       <!-- 上传选项区域 -->
       <div class="upload-options">
@@ -971,14 +981,10 @@ document.addEventListener('DOMContentLoaded', function() {
 async function handleFiles(files) {
     const fileList = document.getElementById('fileList');
     fileList.innerHTML = '';
-    let hasValidFiles = false;
+    let hasFiles = false;
 
     for (const file of files) {
-        if (!file.name.toLowerCase().endsWith('.md')) {
-            await showAlert('只支持上传.md文件: ' + file.name);
-            continue;
-        }
-        hasValidFiles = true;
+        hasFiles = true;
         const item = document.createElement('div');
         item.className = 'preview-item';
         item.innerHTML = `
@@ -988,14 +994,12 @@ async function handleFiles(files) {
         fileList.appendChild(item);
     }
 
-    if (hasValidFiles) {
+    if (hasFiles) {
         document.querySelector('.file-preview').style.display = 'block';
         // 更新文件输入框的文件
         const dataTransfer = new DataTransfer();
         Array.from(files).forEach(file => {
-            if (file.name.toLowerCase().endsWith('.md')) {
-                dataTransfer.items.add(file);
-            }
+            dataTransfer.items.add(file);
         });
         fileInput.files = dataTransfer.files;
     } else {
