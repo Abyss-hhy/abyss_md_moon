@@ -7,7 +7,7 @@ import markdown
 import zipfile
 import io
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash, jsonify
 from markdown.extensions import fenced_code, tables, attr_list, def_list
 from markdown.extensions import codehilite, footnotes, meta, toc
 from markdown.extensions import nl2br, sane_lists, smarty, wikilinks
@@ -573,6 +573,35 @@ def rename_item():
         flash("无效的重命名类型。")
 
     return redirect(url_for('index', dir=current_dir))
+
+@app.route('/get_folder_contents/<path:folder_path>')
+def get_folder_contents(folder_path):
+    folder_full_path = os.path.join(UPLOAD_FOLDER, folder_path)
+    if not os.path.exists(folder_full_path) or not os.path.isdir(folder_full_path):
+        return jsonify({'error': '文件夹不存在'})
+    
+    metadata = load_metadata()
+    contents = []
+    personal_files = {}  # 用于统计个人文件的所有者
+    
+    for root, dirs, files in os.walk(folder_full_path):
+        for file in files:
+            if file.lower().endswith('.md'):
+                file_meta = metadata.get(file, {})
+                owner = file_meta.get('owner', 'shared')
+                if owner != 'shared':
+                    if owner not in personal_files:
+                        personal_files[owner] = []
+                    personal_files[owner].append(file)
+                contents.append({
+                    'name': file,
+                    'owner': owner
+                })
+    
+    return jsonify({
+        'contents': contents,
+        'personal_files': personal_files
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

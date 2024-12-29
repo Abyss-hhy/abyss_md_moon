@@ -390,6 +390,91 @@
             
             document.getElementById('batchAuthModal').style.display = 'flex';
         }
+
+        // 验证并删除文件夹
+        async function verifyAndDeleteFolder(folderPath, folderName) {
+            try {
+                // 获取文件夹内容
+                const response = await fetch(`{{ url_for('get_folder_contents', folder_path='') }}${folderPath}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    await showAlert(data.error);
+                    return;
+                }
+                
+                // 构建显示内容
+                let message = `文件夹 "${folderName}" 包含以下文件：\n\n`;
+                data.contents.forEach(file => {
+                    message += `${file.name} (${file.owner === 'shared' ? '共享文件' : '个人文件-' + file.owner})\n`;
+                });
+                
+                const owners = Object.keys(data.personal_files);
+                
+                if (owners.length === 0) {
+                    // 全是共享文件
+                    if (await showConfirm(message + '\n确认删除这些文件吗？此操作不可恢复。')) {
+                        submitFolderDelete(folderPath);
+                    }
+                } else if (owners.length === 1) {
+                    // 存在一个用户的个人文件
+                    message += `\n文件夹中包含用户 "${owners[0]}" 的个人文件，请输入用户名验证：`;
+                    
+                    document.getElementById('batchAuthTitle').textContent = '验证删除权限';
+                    const authForm = document.getElementById('batchAuthForm');
+                    
+                    authForm.onsubmit = async (e) => {
+                        e.preventDefault();
+                        const username = authForm.owner_user.value;
+                        if (username === owners[0]) {
+                            if (await showConfirm('确认删除此文件夹吗？此操作不可恢复。')) {
+                                closeBatchAuthModal();
+                                submitFolderDelete(folderPath, username);
+                            }
+                        } else {
+                            await showAlert('用户名验证失败');
+                        }
+                    };
+                    
+                    document.getElementById('batchAuthModal').style.display = 'flex';
+                } else {
+                    // 存在多个用户的个人文件
+                    await showAlert(`文件夹中包含多个用户(${owners.join(', ')})的个人文件，无法删除。`);
+                }
+            } catch (error) {
+                await showAlert('获取文件夹内容失败: ' + error);
+            }
+        }
+
+        function submitFolderDelete(folderPath, username = '') {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `{{ url_for('delete_item', filepath='') }}${folderPath}`;
+            
+            if (username) {
+                const userInput = document.createElement('input');
+                userInput.type = 'hidden';
+                userInput.name = 'owner_user';
+                userInput.value = username;
+                form.appendChild(userInput);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+
+        // 确认删除共享文件
+        async function confirmSharedFileDelete(filepath, filename) {
+            if (await showConfirm(`确认删除文件 "${filename}" 吗？此操作不可恢复。`)) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `{{ url_for('delete_item', filepath='') }}${filepath}`;
+                document.body.appendChild(form);
+                form.submit();
+                document.body.removeChild(form);
+            }
+        }
     </script>
 </head>
 <body>
@@ -441,9 +526,7 @@
                         <div class="file-actions">
                             <a href="{{ url_for('index', dir=(current_dir ~ '/' ~ folder if current_dir else folder)) }}" class="btn open-button">打开</a>
                             <button class="btn rename-button" onclick="showRenameForm(event, '{{ folder }}', 'folder')">重命名</button>
-                            <form action="{{ url_for('delete_item', filepath=(current_dir+'/'+folder if current_dir else folder)) }}" method="post" style="display:inline;" onsubmit="return confirmDelete();">
-                                <button type="submit" class="btn danger">删除</button>
-                            </form>
+                            <button class="btn danger" onclick="verifyAndDeleteFolder('{{ current_dir+'/'+folder if current_dir else folder }}', '{{ folder }}')">删除</button>
                         </div>
 
                         <!-- 重命名表单 -->
@@ -481,11 +564,7 @@
                             {% endif %}
                             <button class="btn rename-button" onclick="showRenameForm(event, '{{ f.name }}', 'file')">重命名</button>
                             {% if f.owner == 'shared' %}
-                                <form action="{{ url_for('delete_item', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}" 
-                                      method="post" style="display:inline;" 
-                                      onsubmit="return confirmDelete();">
-                                    <button type="submit" class="btn danger">删除</button>
-                                </form>
+                                <button class="btn danger" onclick="confirmSharedFileDelete('{{ current_dir+'/'+f.name if current_dir else f.name }}', '{{ f.name }}')">删除</button>
                             {% else %}
                                 <button class="btn danger" onclick="verifyAndDelete('{{ f.name }}', '{{ f.owner }}')">删除</button>
                             {% endif %}
