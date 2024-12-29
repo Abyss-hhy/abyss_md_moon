@@ -181,6 +181,52 @@
                 display: none;
             }
         }
+
+        /* 底部信息样式 */
+        .footer-info {
+            position: absolute;
+            bottom: 2rem;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            z-index: 2;
+        }
+
+        .footer-info-content {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-item i {
+            font-size: 1.2rem;
+            color: var(--accent-blue);
+        }
+
+        .copyright {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 768px) {
+            .footer-info-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .footer-info {
+                bottom: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -193,6 +239,26 @@
         <h1>Abyss MD 文件工作站</h1>
         <p class="subtitle">简单、快捷的远程 Markdown 文档管理系统</p>
         <a href="{{ url_for('index') }}" class="enter-button">进入系统</a>
+    </div>
+
+    <div class="footer-info">
+        <div class="footer-info-content">
+            <div class="info-item">
+                <i>📝</i>
+                <span>支持全类型文件上传下载</span>
+            </div>
+            <div class="info-item">
+                <i>✏️</i>
+                <span>Markdown 文件在线编辑</span>
+            </div>
+            <div class="info-item">
+                <i>🔐</i>
+                <span>个人文件权限管理</span>
+            </div>
+        </div>
+        <div class="copyright">
+            © 2024 Abyss MD Store · Version 1.0.7
+        </div>
     </div>
 </body>
 </html> 
