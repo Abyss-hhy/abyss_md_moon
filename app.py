@@ -16,6 +16,9 @@ from urllib.parse import unquote, quote
 app = Flask(__name__)
 app.secret_key = 'some_secret_key'
 
+# 全局版本号
+VERSION = "1.1.7"
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'upload_folder')
 METADATA_FILE = os.path.join(BASE_DIR, 'metadata.json')
@@ -184,7 +187,7 @@ def search_all_files(search_keyword):
 
 @app.route('/')
 def welcome():
-    return render_template('welcome.html')
+    return render_template('welcome.html', VERSION=VERSION)
 
 @app.route('/home')
 def index():
@@ -332,7 +335,8 @@ def index():
                            need_auth_to_view=need_auth_to_view,
                            selected_file_html=selected_file_html,
                            all_dirs=all_dirs,
-                           is_new_file=is_new_file)
+                           is_new_file=is_new_file,
+                           VERSION=VERSION)
 
 @app.route('/create_new_file', methods=['POST'])
 def create_new_file():
