@@ -332,6 +332,64 @@
         async function showConfirm(message) {
             return await showModal('确认', message, true);
         }
+
+        // 验证并下载个人文件
+        async function verifyAndDownload(filename, owner) {
+            document.getElementById('batchAuthTitle').textContent = '验证下载权限';
+            const authForm = document.getElementById('batchAuthForm');
+            
+            authForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const username = authForm.owner_user.value;
+                if (username === owner) {
+                    closeBatchAuthModal();
+                    // 执行下载
+                    window.location.href = `{{ url_for('download_file', filepath='') }}${
+                        '{{ current_dir }}' ? '{{ current_dir }}/' : ''
+                    }${filename}`;
+                } else {
+                    await showAlert('用户名验证失败');
+                }
+            };
+            
+            document.getElementById('batchAuthModal').style.display = 'flex';
+        }
+
+        // 验证并删除个人文件
+        async function verifyAndDelete(filename, owner) {
+            document.getElementById('batchAuthTitle').textContent = '验证删除权限';
+            const authForm = document.getElementById('batchAuthForm');
+            
+            authForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const username = authForm.owner_user.value;
+                if (username === owner) {
+                    if (await showConfirm('确认删除此文件吗？此操作不可恢复。')) {
+                        closeBatchAuthModal();
+                        // 执行删除
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = `{{ url_for('delete_item', filepath='') }}${
+                            '{{ current_dir }}' ? '{{ current_dir }}/' : ''
+                        }${filename}`;
+                        
+                        const userInput = document.createElement('input');
+                        userInput.type = 'hidden';
+                        userInput.name = 'owner_user';
+                        userInput.value = username;
+                        form.appendChild(userInput);
+                        
+                        document.body.appendChild(form);
+                        form.submit();
+                        document.body.removeChild(form);
+                    }
+                } else {
+                    await showAlert('用户名验证失败');
+                }
+            };
+            
+            document.getElementById('batchAuthModal').style.display = 'flex';
+        }
     </script>
 </head>
 <body>
@@ -416,14 +474,21 @@
                         
                         <div class="file-actions">
                             <a href="?dir={{ current_dir }}&selected={{ f.name }}" class="btn open-button">打开</a>
-                            <a class="btn" href="{{ url_for('download_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}">下载</a>
+                            {% if f.owner == 'shared' %}
+                                <a class="btn" href="{{ url_for('download_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}">下载</a>
+                            {% else %}
+                                <button class="btn" onclick="verifyAndDownload('{{ f.name }}', '{{ f.owner }}')">下载</button>
+                            {% endif %}
                             <button class="btn rename-button" onclick="showRenameForm(event, '{{ f.name }}', 'file')">重命名</button>
-                            <form action="{{ url_for('delete_item', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}" method="post" style="display:inline;" onsubmit="return confirmDelete();">
-                                {% if f.owner != 'shared' %}
-                                    <input type="text" name="owner_user" placeholder="用户名" class="input-text short-input" required>
-                                {% endif %}
-                                <button type="submit" class="btn danger">删除</button>
-                            </form>
+                            {% if f.owner == 'shared' %}
+                                <form action="{{ url_for('delete_item', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}" 
+                                      method="post" style="display:inline;" 
+                                      onsubmit="return confirmDelete();">
+                                    <button type="submit" class="btn danger">删除</button>
+                                </form>
+                            {% else %}
+                                <button class="btn danger" onclick="verifyAndDelete('{{ f.name }}', '{{ f.owner }}')">删除</button>
+                            {% endif %}
                         </div>
                         
                         <!-- 重命名表单 -->
