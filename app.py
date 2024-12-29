@@ -17,7 +17,7 @@ app = Flask(__name__)
 app.secret_key = 'some_secret_key'
 
 # 全局版本号
-VERSION = "1.1.8"
+VERSION = "1.1.9"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'upload_folder')

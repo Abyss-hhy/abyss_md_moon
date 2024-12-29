@@ -553,24 +553,28 @@ button[onclick*="download"]:hover {
 /* 右侧面板 */
 .right-panel {
   width: 65%;
-  padding: 20px;
+  padding: 5px 15px;
   overflow: auto;
   background: white;
   font-size: var(--text-base);
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 /* Markdown内容样式 */
 .md-content {
   background: white;
   border: 1px solid var(--gray-200);
-  padding: 20px;
+  padding: 10px 20px;
   border-radius: 12px;
   font-size: var(--text-base);
   font-family: var(--font-sans);
   line-height: 1.8;
   box-shadow: var(--shadow-sm);
+  height: calc(100vh - 180px);
+  overflow-y: auto;
+  margin-bottom: 0;
   
   /* 代码块样式 */
   pre {
@@ -675,24 +679,27 @@ button[onclick*="download"]:hover {
 .editor-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 200px);  /* 减去头部和其他元素的高度 */
-  margin-top: 20px;
+  height: calc(100vh - 120px);
+  margin-top: 5px;
+  margin-bottom: 0;
 }
 
 /* 编辑器样式 */
 .textarea {
   width: 100%;
-  flex: 1;  /* 让文本框占据剩余空间 */
-  min-height: 500px;  /* 最小高度 */
+  flex: 1;
+  height: calc(100vh - 180px);
+  min-height: unset;
   padding: 20px;
   border: 2px solid var(--gray-200);
   border-radius: 12px;
   font-size: var(--text-base);
   font-family: var(--font-mono);
   line-height: 1.6;
-  resize: vertical;  /* 允许垂直调整大小 */
+  resize: none;
   transition: all 0.2s ease;
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+  margin-bottom: 0;
 }
 
 .textarea:focus {
@@ -705,7 +712,8 @@ button[onclick*="download"]:hover {
 #edit_form {
   display: flex;
   flex-direction: column;
-  height: 100%;  /* 占满容器高度 */
+  height: 100%;
+  margin-bottom: 0;
   gap: 1rem;
 }
 
@@ -1277,7 +1285,7 @@ button[onclick*="batchDownload"]:hover {
 .flashes {
     list-style: none;
     padding: 0;
-    margin-bottom: 1rem;
+    margin-bottom: 0.3rem;
 }
 
 /* 错误消息样式 */
