@@ -524,6 +524,50 @@
             
             document.getElementById('batchAuthModal').style.display = 'flex';
         }
+
+        // 图片预览相关函数
+        function showImagePreview(filename, owner) {
+            if (owner === 'shared') {
+                showPreviewModal(filename);
+            } else {
+                showImageAuthModal(filename, owner);
+            }
+        }
+
+        function showPreviewModal(filename) {
+            const modal = document.getElementById('imagePreviewModal');
+            const img = document.getElementById('previewImage');
+            const currentDir = '{{ current_dir }}';
+            const path = currentDir ? `${currentDir}/${filename}` : filename;
+            img.src = `/download/${encodeURIComponent(path)}?preview=true`;
+            modal.style.display = 'flex';
+        }
+
+        function closeImagePreview() {
+            document.getElementById('imagePreviewModal').style.display = 'none';
+        }
+
+        function showImageAuthModal(filename, owner) {
+            document.getElementById('imageAuthInput').value = '';
+            document.getElementById('imageAuthModal').style.display = 'flex';
+            document.getElementById('imageAuthInput').focus();
+            
+            const authForm = document.getElementById('imageAuthForm');
+            authForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const username = authForm.owner_user.value;
+                if (username === owner) {
+                    closeImageAuth();
+                    showPreviewModal(filename);
+                } else {
+                    await showAlert('用户名验证失败');
+                }
+            };
+        }
+
+        function closeImageAuth() {
+            document.getElementById('imageAuthModal').style.display = 'none';
+        }
     </script>
 </head>
 <body>
@@ -634,6 +678,11 @@
                         </div>
                         
                         <div class="file-actions">
+                            {% if f.extension in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'] %}
+                                <button class="btn preview-button" onclick="showImagePreview('{{ f.name }}', '{{ f.owner }}')">
+                                    预览
+                                </button>
+                            {% endif %}
                             {% if f.name.lower().endswith('.md') %}
                                 {% if f.owner == 'shared' %}
                                     <a href="{{ url_for('index', dir=f.path, selected=f.name) }}" class="btn open-button">打开</a>
@@ -951,6 +1000,34 @@
     </div>
 </div>
 
+<!-- 图片预览模态框 -->
+<div id="imagePreviewModal" class="modal">
+    <div class="image-preview-content">
+        <h2>图片预览</h2>
+        <div class="image-container">
+            <img id="previewImage" src="" alt="预览图片">
+        </div>
+        <div class="modal-buttons">
+            <button class="btn" onclick="closeImagePreview()">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- 图片验证模态框 -->
+<div id="imageAuthModal" class="modal">
+    <div class="modal-content">
+        <h2>需要验证</h2>
+        <p>此图片为个人文件，请输入用户名验证：</p>
+        <div class="input-group">
+            <input type="text" id="imageAuthInput" class="input-text" placeholder="请输入用户名">
+        </div>
+        <div class="modal-buttons">
+            <button class="btn primary" onclick="verifyImageOwner()">确认</button>
+            <button class="btn" onclick="closeImageAuth()">取消</button>
+        </div>
+    </div>
+</div>
+
 <!-- 添加相关JavaScript -->
 <script>
 // 打开上传模态框
@@ -1155,6 +1232,50 @@ document.getElementById('renameForm').addEventListener('submit', function(e) {
         alert('文件名不能为空或包含特殊字符');
     }
 });
+
+let currentImagePath = '';
+let currentImageOwner = '';
+
+function showImagePreview(filename, owner) {
+    currentImagePath = filename;
+    currentImageOwner = owner;
+    
+    if (owner !== 'shared') {
+        // 显示验证模态框
+        document.getElementById('imageAuthModal').style.display = 'flex';
+    } else {
+        // 直接显示预览
+        showPreviewModal(filename);
+    }
+}
+
+function verifyImageOwner() {
+    const authInput = document.getElementById('imageAuthInput').value.trim();
+    if (authInput === currentImageOwner) {
+        closeImageAuth();
+        showPreviewModal(currentImagePath);
+    } else {
+        alert('用户名验证失败');
+    }
+}
+
+function showPreviewModal(filename) {
+    const modal = document.getElementById('imagePreviewModal');
+    const img = document.getElementById('previewImage');
+    const currentDir = '{{ current_dir }}';
+    const path = currentDir ? `${currentDir}/${filename}` : filename;
+    img.src = `/download/${encodeURIComponent(path)}?preview=true`;
+    modal.style.display = 'flex';
+}
+
+function closeImagePreview() {
+    document.getElementById('imagePreviewModal').style.display = 'none';
+}
+
+function closeImageAuth() {
+    document.getElementById('imageAuthModal').style.display = 'none';
+    document.getElementById('imageAuthInput').value = '';
+}
 </script>
 </body>
 </html>

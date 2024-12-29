@@ -439,8 +439,14 @@ def upload_file():
 def download_file(filepath):
     full_path = os.path.join(UPLOAD_FOLDER, filepath)
     if os.path.exists(full_path):
-        # 修正：使用 download_name 指定文件名，否则部分旧方式会报错
-        return send_file(full_path, as_attachment=True, download_name=os.path.basename(full_path))
+        # 检查是否是预览请求
+        is_preview = request.args.get('preview', '').lower() == 'true'
+        if is_preview:
+            # 直接返回文件而不是下载
+            return send_file(full_path)
+        else:
+            # 下载文件
+            return send_file(full_path, as_attachment=True, download_name=os.path.basename(full_path))
     else:
         flash("文件不存在")
         return redirect(url_for('index'))
@@ -587,6 +593,15 @@ def update_file():
         with open(file_path, 'w', encoding='utf-8', newline='\n') as f:
             f.write(content)
         
+        # 如果文件没有元数据，创建新的元数据
+        if filename not in metadata:
+            metadata[filename] = {
+                'original_name': filename,
+                'upload_time': str(int(time.time())),
+                'owner': 'shared'
+            }
+        
+        # 更新编辑时间
         metadata[filename]['edit_time'] = str(int(time.time()))
         save_metadata(metadata)
         flash("文件保存成功")
