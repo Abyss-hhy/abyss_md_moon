@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <!-- 让移动端正确缩放 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown Store</title>
+    <title>Abyss' MD Store</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script>
@@ -474,6 +474,9 @@
 <body>
 <!-- 头部布局：排序->搜索居中->新建->上传 -->
 <div class="header">
+    <!-- 修改网站名称 -->
+    <div class="site-title">Abyss' MD Store</div>
+    
     <div class="sort-container">
         <span>排序:</span>
         <button class="btn" onclick="changeSort('name')">名称</button>
@@ -678,7 +681,7 @@
 </div>
 
 <div class="footer">
-    abyss' markdown store - version1.0.7
+    Abyss' MD Store - Version 1.0.7
 </div>
 
 <!-- 在body末尾添加上传模态框 -->
