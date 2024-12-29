@@ -11,16 +11,20 @@
   --primary-800: #1e40af;
   --primary-900: #1e3a8a;
   
-  --accent-500: #22c55e;
-  --accent-600: #16a34a;
+  --accent-500: #10b981;
+  --accent-600: #059669;
   
-  --danger-500: #ef4444;
-  --danger-600: #dc2626;
+  --danger-500: #dc2626;
+  --danger-600: #b91c1c;
   
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
   --gray-200: #e5e7eb;
   --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
   --gray-800: #1f2937;
 
   /* 阴影变量 */
@@ -125,18 +129,19 @@ body {
   margin-left: 10px;
   transition: all 0.2s ease;
   box-shadow: var(--shadow-sm);
-  background: white;
-  color: var(--gray-700);
-  border: 1px solid var(--gray-200);
+  background: var(--gray-100);
+  color: var(--gray-800);
+  border: 1px solid var(--gray-300);
+  text-decoration: none !important;
 }
 
 .btn:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
-  background: var(--gray-50);
+  background: var(--gray-200);
 }
 
-/* 主要按钮 */
+/* 主要操作按钮 (新建、上传、保存等) */
 .btn.primary {
   background: var(--primary-600);
   color: white;
@@ -147,18 +152,18 @@ body {
   background: var(--primary-700);
 }
 
-/* 成功按钮 */
-.btn.success {
+/* 打开/查看按钮 */
+.open-button {
   background: var(--accent-500);
   color: white;
   border: none;
 }
 
-.btn.success:hover {
+.open-button:hover {
   background: var(--accent-600);
 }
 
-/* 危险按钮 */
+/* 删除按钮 */
 .btn.danger {
   background: var(--danger-500);
   color: white;
@@ -169,42 +174,44 @@ body {
   background: var(--danger-600);
 }
 
-/* 次要按钮 */
-.btn.secondary {
+/* 重命名按钮 */
+.rename-button {
+  background: var(--gray-600);
+  color: white;
+  border: none;
+}
+
+.rename-button:hover {
+  background: var(--gray-600);
+}
+
+/* 下载按钮 */
+.btn[href*="download"] {
+  background: var(--primary-600);
+  color: white;
+  border: none;
+}
+
+.btn[href*="download"]:hover {
+  background: var(--primary-600);
+}
+
+/* 取消按钮 */
+.modal-buttons .btn:not(.primary) {
   background: var(--gray-100);
   color: var(--gray-700);
-  border: 1px solid var(--gray-200);
+  border: 1px solid var(--gray-300);
 }
 
-.btn.secondary:hover {
+.modal-buttons .btn:not(.primary):hover {
   background: var(--gray-200);
-}
-
-/* 按钮尺寸 */
-.btn.small {
-  padding: 4px 8px;
-  font-size: var(--text-sm);
-}
-
-.btn.large {
-  padding: 8px 16px;
-  font-size: var(--text-lg);
-}
-
-/* 文件操作按钮组样式优化 */
-.file-actions .btn {
-  padding: 4px 10px;
-  font-size: var(--text-sm);
-  margin: 0;
-  height: fit-content;
-  white-space: nowrap;
 }
 
 /* 头部按钮组样式优化 */
 .header .btn {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(4px);
 }
 
@@ -219,6 +226,18 @@ body {
 
 .header .btn.primary:hover {
   background: var(--accent-600);
+}
+
+/* 返回按钮 */
+.back-button {
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-300);
+}
+
+.back-button:hover {
+  background: var(--gray-200);
+  transform: translateX(-4px);
 }
 
 /* 模态框按钮组样式 */
@@ -967,4 +986,14 @@ hr {
 /* 文件夹操作区域样式 */
 .folder-ops {
   display: none;
+}
+
+/* 链接按钮样式 */
+a.btn {
+  display: inline-block;
+  text-decoration: none !important;
+}
+
+a.btn:hover {
+  text-decoration: none !important;
 }
