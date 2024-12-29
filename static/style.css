@@ -1043,3 +1043,22 @@ a.btn {
 a.btn:hover {
   text-decoration: none !important;
 }
+
+/* 重命名模态框样式 */
+.rename-input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.extension-label {
+    color: var(--gray-600);
+    font-family: var(--font-mono);
+    padding: 0.75rem 0;
+}
+
+/* 确保输入框和扩展名标签在同一行 */
+.rename-input-group .input-text {
+    flex: 1;
+    margin: 0;
+}

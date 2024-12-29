@@ -573,12 +573,15 @@ def rename_item():
     new_name = request.form.get('new_name', '').strip()
     item_type = request.form.get('type', '')
 
-    if not is_valid_name(new_name.replace('.md','')) and item_type=='file':
+    # 处理文件重命名
+    if item_type == 'file':
+        # 保持原有扩展名
+        extension = old_name[old_name.rfind('.'):]
+        new_name = new_name + extension
+
+    if not is_valid_name(new_name.replace('.md', '') if item_type == 'file' else new_name):
         flash("新名称不合法，只能包含字母、数字、下划线、点和横杠。")
         return redirect(url_for('index', dir=current_dir))
-
-    if item_type == 'file' and not new_name.lower().endswith('.md'):
-        new_name += '.md'
 
     old_path = os.path.join(UPLOAD_FOLDER, current_dir, old_name)
     new_path = os.path.join(UPLOAD_FOLDER, current_dir, new_name)
@@ -591,24 +594,20 @@ def rename_item():
         flash("目标名称已存在，无法重命名。")
         return redirect(url_for('index', dir=current_dir))
 
-    if item_type == 'file':
-        metadata = load_metadata()
-        if old_name not in metadata:
-            flash("元数据中未找到此文件。")
-            return redirect(url_for('index', dir=current_dir))
+    try:
         os.rename(old_path, new_path)
-        file_meta = metadata[old_name]
-        del metadata[old_name]
-        file_meta['original_name'] = new_name
-        file_meta['edit_time'] = str(int(time.time()))
-        metadata[new_name] = file_meta
-        save_metadata(metadata)
-        flash("文件重命名成功。")
-    elif item_type == 'folder':
-        os.rename(old_path, new_path)
-        flash("文件夹重命名成功。")
-    else:
-        flash("无效的重命名类型。")
+        if item_type == 'file':
+            metadata = load_metadata()
+            if old_name in metadata:
+                file_meta = metadata[old_name]
+                del metadata[old_name]
+                file_meta['original_name'] = new_name
+                file_meta['edit_time'] = str(int(time.time()))
+                metadata[new_name] = file_meta
+                save_metadata(metadata)
+        flash(f"{'文件' if item_type == 'file' else '文件夹'}重命名成功。")
+    except Exception as e:
+        flash(f"重命名失败: {str(e)}")
 
     return redirect(url_for('index', dir=current_dir))
 

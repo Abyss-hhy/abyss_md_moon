@@ -519,7 +519,7 @@
                         
                         <div class="file-actions">
                             <a href="{{ url_for('index', dir=(current_dir ~ '/' ~ folder if current_dir else folder)) }}" class="btn open-button">打开</a>
-                            <button class="btn rename-button" onclick="showRenameForm(event, '{{ folder }}', 'folder')">重命名</button>
+                            <button class="btn rename-button" onclick="showRenameModal('{{ folder }}', 'folder')">重命名</button>
                             <button class="btn danger" onclick="verifyAndDeleteFolder('{{ current_dir+'/'+folder if current_dir else folder }}', '{{ folder }}')">删除</button>
                         </div>
 
@@ -566,7 +566,7 @@
                             {% else %}
                                 <button class="btn" onclick="verifyAndDownload('{{ f.name }}', '{{ f.owner }}')">下载</button>
                             {% endif %}
-                            <button class="btn rename-button" onclick="showRenameForm(event, '{{ f.name }}', 'file')">重命名</button>
+                            <button class="btn rename-button" onclick="showRenameModal('{{ f.name }}', 'file')">重命名</button>
                             {% if f.owner == 'shared' %}
                                 <button class="btn danger" onclick="confirmSharedFileDelete('{{ current_dir+'/'+f.name if current_dir else f.name }}', '{{ f.name }}')">删除</button>
                             {% else %}
@@ -843,6 +843,31 @@
   </div>
 </div>
 
+<!-- 添加重命名模态框 -->
+<div id="renameModal" class="modal">
+    <div class="modal-content">
+        <h2>重命名</h2>
+        <form id="renameForm" action="{{ url_for('rename_item') }}" method="post">
+            <input type="hidden" name="dir" value="{{ current_dir }}">
+            <input type="hidden" name="old_name" id="rename_old_name">
+            <input type="hidden" name="type" id="rename_type">
+            
+            <div class="input-group">
+                <label>新名称:</label>
+                <div class="rename-input-group">
+                    <input type="text" id="rename_new_name" name="new_name" class="input-text" required>
+                    <span id="rename_extension" class="extension-label"></span>
+                </div>
+            </div>
+
+            <div class="modal-buttons">
+                <button type="submit" class="btn primary">确认</button>
+                <button type="button" class="btn" onclick="closeRenameModal()">取消</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- 添加相关JavaScript -->
 <script>
 // 打开上传模态框
@@ -1005,6 +1030,48 @@ function formatFileSize(bytes) {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
+
+// 打开重命名模态框
+function showRenameModal(oldName, type) {
+    const modal = document.getElementById('renameModal');
+    const oldNameInput = document.getElementById('rename_old_name');
+    const typeInput = document.getElementById('rename_type');
+    const newNameInput = document.getElementById('rename_new_name');
+    const extensionSpan = document.getElementById('rename_extension');
+    
+    // 设置表单字段
+    oldNameInput.value = oldName;
+    typeInput.value = type;
+    
+    if (type === 'file') {
+        // 如果是文件，分离文件名和扩展名
+        const extension = oldName.substring(oldName.lastIndexOf('.'));
+        const nameWithoutExt = oldName.substring(0, oldName.lastIndexOf('.'));
+        newNameInput.value = nameWithoutExt;
+        extensionSpan.textContent = extension;
+        extensionSpan.style.display = 'inline';
+    } else {
+        // 如果是文件夹，不显示扩展名
+        newNameInput.value = oldName;
+        extensionSpan.style.display = 'none';
+    }
+    
+    modal.style.display = 'flex';
+}
+
+// 关闭重命名模态框
+function closeRenameModal() {
+    document.getElementById('renameModal').style.display = 'none';
+}
+
+// 验证重命名表单
+document.getElementById('renameForm').addEventListener('submit', function(e) {
+    const newName = document.getElementById('rename_new_name').value;
+    if (!newName || newName.includes('/') || newName.includes('\\')) {
+        e.preventDefault();
+        alert('文件名不能为空或包含特殊字符');
+    }
+});
 </script>
 </body>
 </html>
