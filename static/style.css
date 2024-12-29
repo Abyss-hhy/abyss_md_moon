@@ -1099,3 +1099,74 @@ a.btn:hover {
         margin-right: 1rem;
     }
 }
+
+/* 面包屑导航样式优化 */
+.breadcrumb {
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    background: var(--gray-50);
+    border-radius: 8px;
+    font-size: var(--text-sm);
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    border: 1px solid var(--gray-200);
+}
+
+.breadcrumb-item {
+    color: var(--gray-600);
+    text-decoration: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+}
+
+.breadcrumb-item:hover {
+    color: var(--accent-500);
+    background: var(--gray-100);
+}
+
+.breadcrumb-separator {
+    color: var(--gray-400);
+    margin: 0;
+    user-select: none;
+}
+
+/* 当前路径高亮 */
+.breadcrumb-item:last-child {
+    color: var(--accent-500);
+    font-weight: 500;
+    background: var(--gray-100);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .breadcrumb {
+        font-size: var(--text-xs);
+        padding: 0.5rem;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* 当前路径样式 */
+.breadcrumb-item.current {
+    color: var(--accent-500);
+    font-weight: 500;
+    background: var(--gray-100);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: default;  /* 移除鼠标手型 */
+}
+
+/* 移除最后一项的悬停效果 */
+.breadcrumb-item.current:hover {
+    color: var(--accent-500);
+    background: var(--gray-100);
+}

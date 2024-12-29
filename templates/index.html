@@ -496,6 +496,24 @@
     <div class="left-panel">
         <!-- 固定在顶部的操作区域 -->
         <div class="operations-area">
+            <!-- 添加面包屑导航 -->
+            <div class="breadcrumb">
+                <a href="{{ url_for('index') }}" class="breadcrumb-item">根目录</a>
+                {% if current_dir %}
+                    {% set path_parts = current_dir.split('/') %}
+                    {% set current_path = [] %}
+                    {% for part in path_parts if part %}
+                        {% set _ = current_path.append(part) %}
+                        <span class="breadcrumb-separator">/</span>
+                        {% if loop.last %}
+                            <span class="breadcrumb-item current">{{ part }}</span>
+                        {% else %}
+                            <a href="{{ url_for('index', dir='/'.join(current_path)) }}" class="breadcrumb-item">{{ part }}</a>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </div>
+
             <div class="folder-nav">
                 {% if current_dir != '' %}
                 <a href="{{ url_for('index', dir=parent_dir) }}" class="btn back-button">返回上级目录</a>
@@ -514,22 +532,22 @@
             <div class="folder-list">
                 <ul>
                 {% for folder in folders %}
-                    <li class="file-item folder-item" data-filename="{{ folder }}">
+                    <li class="file-item folder-item" data-filename="{{ folder.name if folder is mapping else folder }}">
                         <div class="file-icon">📁</div>
                         <div class="file-info">
-                            <div class="file-name">{{ folder }}</div>
+                            <div class="file-name">{{ folder.name if folder is mapping else folder }}</div>
                         </div>
                         
                         <div class="file-actions">
-                            <a href="{{ url_for('index', dir=(current_dir ~ '/' ~ folder if current_dir else folder)) }}" class="btn open-button">打开</a>
-                            <button class="btn rename-button" onclick="showRenameModal('{{ folder }}', 'folder')">重命名</button>
-                            <button class="btn danger" onclick="verifyAndDeleteFolder('{{ current_dir+'/'+folder if current_dir else folder }}', '{{ folder }}')">删除</button>
+                            <a href="{{ url_for('index', dir=folder.path if folder is mapping else (current_dir ~ '/' ~ folder if current_dir else folder)) }}" class="btn open-button">打开</a>
+                            <button class="btn rename-button" onclick="showRenameModal('{{ folder.name if folder is mapping else folder }}', 'folder')">重命名</button>
+                            <button class="btn danger" onclick="verifyAndDeleteFolder('{{ current_dir+'/'+folder if current_dir else folder }}', '{{ folder.name if folder is mapping else folder }}')">删除</button>
                         </div>
 
                         <!-- 重命名表单 -->
                         <form class="rename-form" action="{{ url_for('rename_item') }}" method="post" style="display:none;">
                             <input type="hidden" name="dir" value="{{ current_dir }}">
-                            <input type="hidden" name="old_name" value="{{ folder }}">
+                            <input type="hidden" name="old_name" value="{{ folder.name if folder is mapping else folder }}">
                             <input type="hidden" name="type" value="folder">
                             <input type="text" name="new_name" placeholder="新名称" class="input-text short-input" required>
                             <button type="submit" class="btn">确定</button>
@@ -562,7 +580,7 @@
                         
                         <div class="file-actions">
                             {% if f.name.lower().endswith('.md') %}
-                                <a href="{{ url_for('index', dir=current_dir, selected=f.name) }}" class="btn open-button">打开</a>
+                                <a href="{{ url_for('index', dir=f.path, selected=f.name) }}" class="btn open-button">打开</a>
                             {% endif %}
                             {% if f.owner == 'shared' %}
                                 <a class="btn" href="{{ url_for('download_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}">下载</a>
@@ -681,7 +699,7 @@
 </div>
 
 <div class="footer">
-    Abyss' MD Store - Version 1.0.7
+    Abyss' MD Store - Version 1.1.3
 </div>
 
 <!-- 在body末尾添加上传模态框 -->

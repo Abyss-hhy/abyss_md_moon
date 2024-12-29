@@ -121,9 +121,66 @@ def render_markdown(content):
 # 添加一个辅助函数来处理路径
 def normalize_path(path):
     """规范化路径，处理斜杠和编码问题"""
-    path = path.replace('\\', '/').strip()
-    path = unquote(path)  # URL解码
+    if not path:
+        return ''
+    # 移除开头和结尾的斜杠
+    path = path.strip('/')
+    # 替换连续的斜杠为单个斜杠
+    path = re.sub(r'/+', '/', path)
+    # URL解码
+    path = unquote(path)
     return path
+
+def search_all_files(search_keyword):
+    """搜索所有目录下的文件"""
+    results = []
+    metadata = load_metadata()
+    
+    # 遍历所有目录
+    for root, dirs, files in os.walk(UPLOAD_FOLDER):
+        # 获取相对路径
+        rel_path = os.path.relpath(root, UPLOAD_FOLDER)
+        rel_path = '' if rel_path == '.' else rel_path
+        # 统一使用正斜杠
+        rel_path = rel_path.replace('\\', '/')
+        
+        # 搜索文件夹
+        for dir_name in dirs:
+            if search_keyword.lower() in dir_name.lower():
+                path = os.path.join(rel_path, dir_name) if rel_path else dir_name
+                results.append({
+                    'name': dir_name,
+                    'path': path.replace('\\', '/'),
+                    'is_folder': True
+                })
+        
+        # 搜索文件
+        for file_name in files:
+            file_meta = metadata.get(file_name, {})
+            original_name = file_meta.get('original_name', file_name)
+            if search_keyword.lower() in original_name.lower():
+                # 构建相对路径
+                path = os.path.join(rel_path, file_name) if rel_path else file_name
+                
+                # 安全处理时间戳
+                upload_time = file_meta.get('upload_time')
+                edit_time = file_meta.get('edit_time')
+                
+                formatted_upload_time = format_timestamp(upload_time) if upload_time else ''
+                formatted_edit_time = format_timestamp(edit_time) if edit_time else ''
+                
+                results.append({
+                    'name': file_name,
+                    'path': path.replace('\\', '/'),
+                    'original_name': original_name,
+                    'upload_time': formatted_upload_time,
+                    'edit_time': formatted_edit_time,
+                    'owner': file_meta.get('owner', 'shared'),
+                    'extension': os.path.splitext(file_name)[1].lower(),
+                    'is_folder': False
+                })
+    
+    return results
 
 @app.route('/')
 def welcome():
@@ -139,59 +196,66 @@ def index():
     auth_user = request.args.get('auth_user', '').strip()
 
     # 处理路径中的特殊字符
-    current_dir = unquote(current_dir)
-    selected = unquote(selected) if selected else ''
+    current_dir = normalize_path(current_dir)
+    selected = normalize_path(selected) if selected else ''
     
-    browse_path = os.path.join(UPLOAD_FOLDER, current_dir)
+    # 构建浏览路径
+    browse_path = os.path.join(UPLOAD_FOLDER, current_dir) if current_dir else UPLOAD_FOLDER
+    
+    # 如果是文件路径，获取其目录
+    if os.path.isfile(browse_path):
+        browse_path = os.path.dirname(browse_path)
+        current_dir = os.path.relpath(browse_path, UPLOAD_FOLDER)
+    
     if not os.path.exists(browse_path):
         browse_path = UPLOAD_FOLDER
         current_dir = ''
 
-    metadata = load_metadata()
-    items = os.listdir(browse_path)
+    # 如果有搜索关键词，使用全局搜索
+    if search_keyword:
+        search_results = search_all_files(search_keyword)
+        folders = [item for item in search_results if item['is_folder']]
+        files = [item for item in search_results if not item['is_folder']]
+    else:
+        # 原有的目录浏览逻辑
+        metadata = load_metadata()
+        items = os.listdir(browse_path)
+        folders = []
+        files = []
+        for item in items:
+            full_path = os.path.join(browse_path, item)
+            if os.path.isdir(full_path):
+                folders.append(item)
+            else:
+                file_meta = metadata.get(item, {})
+                original_name = file_meta.get('original_name', item)
+                upload_time = file_meta.get('upload_time', '')
+                edit_time = file_meta.get('edit_time', '')
+                owner = file_meta.get('owner', 'shared')
+                formatted_upload_time = format_timestamp(upload_time) if upload_time else ''
+                formatted_edit_time = format_timestamp(edit_time) if edit_time else ''
+                ext = os.path.splitext(item)[1].lower()
+                
+                files.append({
+                    'name': item,
+                    'original_name': original_name,
+                    'upload_time': formatted_upload_time,
+                    'edit_time': formatted_edit_time,
+                    'owner': owner,
+                    'extension': ext,
+                    'path': current_dir
+                })
 
-    folders = []
-    files = []
-    for item in items:
-        full_path = os.path.join(browse_path, item)
-        if os.path.isdir(full_path):
-            if search_keyword:
-                if search_keyword.lower() not in item.lower():
-                    continue
-            folders.append(item)
-        else:
-            file_meta = metadata.get(item, {})
-            original_name = file_meta.get('original_name', item)
-            upload_time = file_meta.get('upload_time', '')
-            edit_time = file_meta.get('edit_time', '')
-            owner = file_meta.get('owner', 'shared')
-            if search_keyword:
-                if search_keyword.lower() not in original_name.lower():
-                    continue
-            formatted_upload_time = format_timestamp(upload_time) if upload_time else ''
-            formatted_edit_time = format_timestamp(edit_time) if edit_time else ''
-            
-            # 获取文件扩展名
-            ext = os.path.splitext(item)[1].lower()
-            
-            files.append({
-                'name': item,
-                'original_name': original_name,
-                'upload_time': formatted_upload_time,
-                'edit_time': formatted_edit_time,
-                'owner': owner,
-                'extension': ext  # 添加扩展名信息
-            })
-
+    # 排序逻辑
     def sort_key(f):
         if sort_by == 'name':
-            return f['original_name'].lower()
+            return f['original_name'].lower() if not isinstance(f, str) else f.lower()
         elif sort_by == 'upload_time':
-            return f['upload_time']
+            return f['upload_time'] if not isinstance(f, str) else ''
         elif sort_by == 'edit_time':
-            return f['edit_time']
+            return f['edit_time'] if not isinstance(f, str) else ''
         else:
-            return f['original_name'].lower()
+            return f['original_name'].lower() if not isinstance(f, str) else f.lower()
 
     files = sorted(files, key=sort_key, reverse=(sort_order == 'desc'))
 
@@ -210,7 +274,17 @@ def index():
     if selected and not is_new_file:
         selected_file_info = next((f for f in files if f['name'] == selected), None)
         if selected_file_info:
-            selected_file_path = os.path.normpath(os.path.join(browse_path, selected))
+            if search_keyword:
+                # 搜索结果中的文件使用完整路径
+                file_path = selected_file_info['path']
+                browse_path = os.path.dirname(os.path.join(UPLOAD_FOLDER, file_path))
+            else:
+                # 普通浏览使用当前目录
+                file_path = selected
+                browse_path = os.path.join(UPLOAD_FOLDER, current_dir)
+
+            # 规范化路径分隔符
+            selected_file_path = os.path.normpath(os.path.join(browse_path, file_path))
             selected_file_owner = selected_file_info['owner']
             selected_file_original_name = selected_file_info['original_name']
 
