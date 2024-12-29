@@ -30,21 +30,15 @@
 
         // 开始编辑
         function startEditing() {
-            const contentDiv = document.getElementById('file_content_view');
-            if (contentDiv) {
-                contentDiv.style.display = 'none';
-            }
+            document.getElementById('file_content_view').style.display = 'none';
             document.getElementById('edit_button').style.display = 'none';
             document.getElementById('edit_controls').style.display = 'inline-block';
-            document.getElementById('edit_form').style.display = 'flex';
+            document.getElementById('edit_form').style.display = 'block';
         }
 
         // 取消编辑
         function cancelEditing() {
-            const contentDiv = document.getElementById('file_content_view');
-            if (contentDiv) {
-                contentDiv.style.display = 'block';
-            }
+            document.getElementById('file_content_view').style.display = 'block';
             document.getElementById('edit_button').style.display = 'inline-block';
             document.getElementById('edit_controls').style.display = 'none';
             document.getElementById('edit_form').style.display = 'none';
@@ -565,7 +559,7 @@
                         
                         <div class="file-actions">
                             {% if f.name.lower().endswith('.md') %}
-                                <a href="?dir={{ current_dir }}&selected={{ f.name }}" class="btn open-button">打开</a>
+                                <a href="{{ url_for('index', dir=current_dir, selected=f.name) }}" class="btn open-button">打开</a>
                             {% endif %}
                             {% if f.owner == 'shared' %}
                                 <a class="btn" href="{{ url_for('download_file', filepath=(current_dir+'/'+f.name if current_dir else f.name)) }}">下载</a>
@@ -662,22 +656,18 @@
                 </form>
             {% else %}
                 <div class="editor-container">
-                    <div id="file_content_view">
+                    <!-- 默认显示预览 -->
+                    <div id="file_content_view" style="display:block;">
                         <div class="md-content" style="margin-bottom:10px;">
                             {{ selected_file_html|safe }}
                         </div>
                     </div>
-                    <!-- 编辑表单: hidden by default -->
-                    <form method="post" action="{{ url_for('update_file') }}" id="edit_form" style="display:none; flex:1 1 auto; margin-top:10px; flex-direction:column;">
+                    <!-- 编辑表单默认隐藏 -->
+                    <form id="edit_form" action="{{ url_for('update_file') }}" method="post" style="display:none;">
                         <input type="hidden" name="dir" value="{{ current_dir }}">
                         <input type="hidden" name="filename" value="{{ selected_file }}">
-                        {% if selected_file_owner != 'shared' %}
-                            <p>这是个人文件，请输入用户名：</p>
-                            <input type="text" name="owner_user" class="input-text" placeholder="用户名" required>
-                        {% else %}
-                            <input type="hidden" name="owner_user" value="shared">
-                        {% endif %}
-                        <textarea name="content" class="textarea" style="flex:1 1 auto;">{{ selected_file_content }}</textarea>
+                        <input type="hidden" name="owner_user" value="">
+                        <textarea name="content" class="textarea">{{ selected_file_content }}</textarea>
                     </form>
                 </div>
             {% endif %}

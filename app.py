@@ -11,6 +11,7 @@ from flask import Flask, render_template, request, redirect, url_for, send_file,
 from markdown.extensions import fenced_code, tables, attr_list, def_list
 from markdown.extensions import codehilite, footnotes, meta, toc
 from markdown.extensions import nl2br, sane_lists, smarty, wikilinks
+from urllib.parse import unquote, quote
 
 app = Flask(__name__)
 app.secret_key = 'some_secret_key'
@@ -117,6 +118,13 @@ def render_markdown(content):
     )
     return md.convert(content)
 
+# 添加一个辅助函数来处理路径
+def normalize_path(path):
+    """规范化路径，处理斜杠和编码问题"""
+    path = path.replace('\\', '/').strip()
+    path = unquote(path)  # URL解码
+    return path
+
 @app.route('/')
 def index():
     current_dir = request.args.get('dir', '')
@@ -126,6 +134,10 @@ def index():
     selected = request.args.get('selected', '')
     auth_user = request.args.get('auth_user', '').strip()
 
+    # 处理路径中的特殊字符
+    current_dir = unquote(current_dir)
+    selected = unquote(selected) if selected else ''
+    
     browse_path = os.path.join(UPLOAD_FOLDER, current_dir)
     if not os.path.exists(browse_path):
         browse_path = UPLOAD_FOLDER
@@ -194,23 +206,36 @@ def index():
     if selected and not is_new_file:
         selected_file_info = next((f for f in files if f['name'] == selected), None)
         if selected_file_info:
-            selected_full_path = os.path.join(browse_path, selected)
+            selected_file_path = os.path.normpath(os.path.join(browse_path, selected))
             selected_file_owner = selected_file_info['owner']
             selected_file_original_name = selected_file_info['original_name']
 
+            print(f"Debug - Selected file path: {selected_file_path}")
+            print(f"Debug - File exists: {os.path.exists(selected_file_path)}")
+
             if selected_file_owner != 'shared':
                 if auth_user == selected_file_owner:
-                    if os.path.exists(selected_full_path):
-                        with open(selected_full_path, 'r', encoding='utf-8') as f:
-                            selected_file_content = f.read()
-                        selected_file_html = render_markdown(selected_file_content)
+                    if os.path.exists(selected_file_path):
+                        try:
+                            with open(selected_file_path, 'r', encoding='utf-8') as f:
+                                selected_file_content = f.read()
+                            selected_file_html = render_markdown(selected_file_content)
+                        except Exception as e:
+                            flash(f"读取文件失败: {str(e)}")
+                            selected_file_content = ""
+                            selected_file_html = ""
                 else:
                     need_auth_to_view = True
             else:
-                if os.path.exists(selected_full_path):
-                    with open(selected_full_path, 'r', encoding='utf-8') as f:
-                        selected_file_content = f.read()
-                    selected_file_html = render_markdown(selected_file_content)
+                if os.path.exists(selected_file_path):
+                    try:
+                        with open(selected_file_path, 'r', encoding='utf-8') as f:
+                            selected_file_content = f.read()
+                        selected_file_html = render_markdown(selected_file_content)
+                    except Exception as e:
+                        flash(f"读取文件失败: {str(e)}")
+                        selected_file_content = ""
+                        selected_file_html = ""
 
     all_dirs = list_all_dirs()
 
@@ -463,28 +488,43 @@ def update_file():
     content = request.form.get('content', '')
     owner_user = request.form.get('owner_user', '').strip()
 
-    # 移除Windows风格的换行符，统一使用Unix风格
-    content = content.replace('\r\n', '\n')
+    # 处理路径中的特殊字符
+    current_dir = unquote(current_dir)
+    filename = unquote(filename)
     
+    # 构建文件路径
     file_path = os.path.join(UPLOAD_FOLDER, current_dir, filename)
+    
     metadata = load_metadata()
     
-    if filename not in metadata:
-        flash("文件不存在")
+    if not os.path.exists(file_path):
+        flash(f"文件不存在: {filename}")
         return redirect(url_for('index', dir=current_dir))
+        
+    if filename not in metadata:
+        metadata[filename] = {
+            "original_name": filename,
+            "upload_time": str(int(time.time())),
+            "edit_time": str(int(time.time())),
+            "owner": "shared"
+        }
     
     file_meta = metadata[filename]
     if file_meta.get('owner', 'shared') != 'shared' and file_meta.get('owner') != owner_user:
         flash("无权限编辑此文件")
         return redirect(url_for('index', dir=current_dir, selected=filename))
     
-    with open(file_path, 'w', encoding='utf-8', newline='\n') as f:  # 指定newline参数
-        f.write(content)
-    
-    file_meta['edit_time'] = str(int(time.time()))
-    save_metadata(metadata)
-    
-    flash("文件保存成功")
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        file_meta['edit_time'] = str(int(time.time()))
+        save_metadata(metadata)
+        
+        flash("文件保存成功")
+    except Exception as e:
+        flash(f"保存失败: {str(e)}")
+        
     return redirect(url_for('index', dir=current_dir, selected=filename))
 
 @app.route('/delete_item/<path:filepath>', methods=['POST'])
