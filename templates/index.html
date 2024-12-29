@@ -114,10 +114,10 @@
         }
 
         // 批量移动
-        function openBatchMoveModal() {
+        async function openBatchMoveModal() {
             const selectedFiles = getSelectedFiles();
             if (selectedFiles.length === 0) {
-                alert('请选择要移动的文件');
+                await showAlert('请选择要移动的文件');
                 return;
             }
             
