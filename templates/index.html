@@ -469,13 +469,23 @@
                 document.body.removeChild(form);
             }
         }
+
+        function openFolder(path) {
+            // 阻止事件冒泡，避免与其他点击事件冲突
+            event.stopPropagation();
+            // 检查点击是否来自按钮
+            if (event.target.closest('.btn')) {
+                return;
+            }
+            window.location.href = "{{ url_for('index') }}?dir=" + encodeURIComponent(path);
+        }
     </script>
 </head>
 <body>
 <!-- 头部布局：排序->搜索居中->新建->上传 -->
 <div class="header">
-    <!-- 修改网站名称 -->
-    <div class="site-title">Abyss' MD Store</div>
+    <!-- 修改标题部分 -->
+    <a href="{{ url_for('welcome') }}" class="site-title hover-gradient">Abyss' MD Store</a>
     
     <div class="sort-container">
         <span>排序:</span>
@@ -532,14 +542,14 @@
             <div class="folder-list">
                 <ul>
                 {% for folder in folders %}
-                    <li class="file-item folder-item" data-filename="{{ folder.name if folder is mapping else folder }}">
+                    <li class="file-item folder-item" data-filename="{{ folder.name if folder is mapping else folder }}" 
+                        onclick="openFolder('{{ current_dir+'/'+folder if current_dir else folder }}')">
                         <div class="file-icon">📁</div>
                         <div class="file-info">
                             <div class="file-name">{{ folder.name if folder is mapping else folder }}</div>
                         </div>
                         
                         <div class="file-actions">
-                            <a href="{{ url_for('index', dir=folder.path if folder is mapping else (current_dir ~ '/' ~ folder if current_dir else folder)) }}" class="btn open-button">打开</a>
                             <button class="btn rename-button" onclick="showRenameModal('{{ folder.name if folder is mapping else folder }}', 'folder')">重命名</button>
                             <button class="btn danger" onclick="verifyAndDeleteFolder('{{ current_dir+'/'+folder if current_dir else folder }}', '{{ folder.name if folder is mapping else folder }}')">删除</button>
                         </div>
