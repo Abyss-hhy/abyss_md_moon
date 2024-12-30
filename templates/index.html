@@ -787,21 +787,35 @@
                     <button type="submit" class="btn primary">确认</button>
                 </form>
             {% else %}
-                <div class="editor-container">
-                    <!-- 默认显示预览 -->
-                    <div id="file_content_view" style="display:block;">
-                        <div class="md-content" style="margin-bottom:10px;">
-                            {{ selected_file_html|safe }}
+                <div id="file_content_view">
+                    <div class="content-outline-container">
+                        <div class="content-container">
+                            <div class="md-content">
+                                {{ selected_file_html | safe }}
+                            </div>
                         </div>
+                        {% if outline %}
+                        <div class="outline-container">
+                            <div class="outline-title">文档大纲</div>
+                            <ul class="outline-list">
+                                {% for item in outline %}
+                                <li class="outline-item outline-h{{ item.level }}">
+                                    <a href="#{{ item.id }}" class="outline-link">{{ item.text }}</a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
                     </div>
-                    <!-- 编辑表单默认隐藏 -->
-                    <form id="edit_form" action="{{ url_for('update_file') }}" method="post" style="display:none;">
-                        <input type="hidden" name="dir" value="{{ current_dir }}">
-                        <input type="hidden" name="filename" value="{{ selected_file }}">
-                        <input type="hidden" name="auth_user" value="{{ request.args.get('auth_user', '') }}">
-                        <textarea name="content" class="textarea">{{ selected_file_content }}</textarea>
-                    </form>
                 </div>
+                
+                <!-- 编辑表单默认隐藏 -->
+                <form id="edit_form" action="{{ url_for('update_file') }}" method="post" style="display:none;">
+                    <input type="hidden" name="dir" value="{{ current_dir }}">
+                    <input type="hidden" name="filename" value="{{ selected_file }}">
+                    <input type="hidden" name="auth_user" value="{{ request.args.get('auth_user', '') }}">
+                    <textarea name="content" class="textarea">{{ selected_file_content }}</textarea>
+                </form>
             {% endif %}
         {% else %}
             <p>请选择一个MD文件以查看和编辑，或使用右上角"新建MD文件"进行新建。</p>

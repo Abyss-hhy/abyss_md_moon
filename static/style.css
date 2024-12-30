@@ -562,6 +562,77 @@ button[onclick*="download"]:hover {
   height: 100%;
 }
 
+/* 内容和大纲布局 */
+.content-outline-container {
+  display: flex;
+  gap: 20px;
+  height: 100%;
+}
+
+/* Markdown内容区域 */
+.content-container {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 大纲容器 */
+.outline-container {
+  width: 250px;
+  padding: 15px;
+  background: var(--gray-50);
+  border-left: 1px solid var(--gray-200);
+  overflow-y: auto;
+  height: calc(100vh - 180px);
+}
+
+/* 大纲标题 */
+.outline-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+/* 大纲列表 */
+.outline-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* 大纲项目 */
+.outline-item {
+  margin: 4px 0;
+  padding-left: 12px;
+}
+
+/* 大纲链接 */
+.outline-link {
+  color: var(--gray-600);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  display: block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.outline-link:hover {
+  color: var(--primary-600);
+  background: var(--primary-50);
+}
+
+/* 大纲层级缩进 */
+.outline-h1 { margin-left: 0; }
+.outline-h2 { margin-left: 1em; }
+.outline-h3 { margin-left: 2em; }
+.outline-h4 { margin-left: 3em; }
+.outline-h5 { margin-left: 4em; }
+.outline-h6 { margin-left: 5em; }
+
 /* Markdown内容样式 */
 .md-content {
   background: white;

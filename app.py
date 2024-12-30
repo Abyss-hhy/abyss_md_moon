@@ -12,12 +12,13 @@ from markdown.extensions import fenced_code, tables, attr_list, def_list
 from markdown.extensions import codehilite, footnotes, meta, toc
 from markdown.extensions import nl2br, sane_lists, smarty, wikilinks
 from urllib.parse import unquote, quote
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 app.secret_key = 'some_secret_key'
 
 # 全局版本号
-VERSION = "1.1.9"
+VERSION = "1.1.10"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'upload_folder')
@@ -50,7 +51,7 @@ def is_valid_name(filename):
     - 数字
     - 常用标点符号和特殊字符
     禁止:
-    - 文件系统的特殊字符 (/ \ : * ? " < > |)
+    - 文件系统的特殊字符 (/ \\ : * ? " < > |)
     - 以点(.)开头的文件名
     """
     # 禁止的字符
@@ -88,38 +89,42 @@ def list_all_dirs():
     return dir_list
 
 def render_markdown(content):
-    """
-    渲染Markdown内容，支持更多特性
-    """
-    # 统一换行符
-    content = content.replace('\r\n', '\n')
+    # 配置Markdown扩展
+    extensions = [
+        'fenced_code',
+        'tables',
+        'attr_list',
+        'def_list',
+        'codehilite',
+        'footnotes',
+        'meta',
+        'toc',
+        'nl2br',
+        'sane_lists',
+        'smarty',
+        'wikilinks'
+    ]
     
-    md = markdown.Markdown(
-        extensions=[
-            'fenced_code',
-            'codehilite',
-            'tables',
-            'attr_list',
-            'def_list',
-            'footnotes',
-            'meta',
-            'toc',
-            'sane_lists',    # 移除nl2br扩展，避免自动添加额外换行
-            'smarty',
-            'wikilinks',
-        ],
-        extension_configs={
-            'codehilite': {
-                'css_class': 'highlight',
-                'linenums': True,
-                'guess_lang': True
-            },
-            'toc': {
-                'permalink': True
-            }
-        }
-    )
-    return md.convert(content)
+    # 渲染Markdown
+    md = markdown.Markdown(extensions=extensions)
+    html_content = md.convert(content)
+    
+    # 生成大纲
+    outline = []
+    soup = BeautifulSoup(html_content, 'html.parser')
+    for heading in soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
+        level = int(heading.name[1])
+        text = heading.get_text()
+        # 生成锚点ID
+        heading_id = re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
+        heading['id'] = heading_id
+        outline.append({
+            'level': level,
+            'text': text,
+            'id': heading_id
+        })
+    
+    return html_content, outline
 
 # 添加一个辅助函数来处理路径
 def normalize_path(path):
@@ -278,21 +283,15 @@ def index():
         selected_file_info = next((f for f in files if f['name'] == selected), None)
         if selected_file_info:
             if search_keyword:
-                # 搜索结果中的文件使用完整路径
                 file_path = selected_file_info['path']
                 browse_path = os.path.dirname(os.path.join(UPLOAD_FOLDER, file_path))
             else:
-                # 普通浏览使用当前目录
                 file_path = selected
                 browse_path = os.path.join(UPLOAD_FOLDER, current_dir)
 
-            # 规范化路径分隔符
             selected_file_path = os.path.normpath(os.path.join(browse_path, file_path))
             selected_file_owner = selected_file_info['owner']
             selected_file_original_name = selected_file_info['original_name']
-
-            print(f"Debug - Selected file path: {selected_file_path}")
-            print(f"Debug - File exists: {os.path.exists(selected_file_path)}")
 
             if selected_file_owner != 'shared':
                 if auth_user == selected_file_owner:
@@ -300,11 +299,12 @@ def index():
                         try:
                             with open(selected_file_path, 'r', encoding='utf-8') as f:
                                 selected_file_content = f.read()
-                            selected_file_html = render_markdown(selected_file_content)
+                            selected_file_html, outline = render_markdown(selected_file_content)
                         except Exception as e:
                             flash(f"读取文件失败: {str(e)}")
                             selected_file_content = ""
                             selected_file_html = ""
+                            outline = []
                 else:
                     need_auth_to_view = True
             else:
@@ -312,11 +312,12 @@ def index():
                     try:
                         with open(selected_file_path, 'r', encoding='utf-8') as f:
                             selected_file_content = f.read()
-                        selected_file_html = render_markdown(selected_file_content)
+                        selected_file_html, outline = render_markdown(selected_file_content)
                     except Exception as e:
                         flash(f"读取文件失败: {str(e)}")
                         selected_file_content = ""
                         selected_file_html = ""
+                        outline = []
 
     all_dirs = list_all_dirs()
 
@@ -336,6 +337,7 @@ def index():
                            selected_file_html=selected_file_html,
                            all_dirs=all_dirs,
                            is_new_file=is_new_file,
+                           outline=outline if 'outline' in locals() else [],
                            VERSION=VERSION)
 
 @app.route('/create_new_file', methods=['POST'])
