@@ -18,7 +18,7 @@ app = Flask(__name__)
 app.secret_key = 'some_secret_key'
 
 # 全局版本号
-VERSION = "1.1.10"
+VERSION = "1.1.11"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'upload_folder')
@@ -112,19 +112,39 @@ def render_markdown(content):
     # 生成大纲
     outline = []
     soup = BeautifulSoup(html_content, 'html.parser')
+    
+    # 为所有标题添加id和锚点
     for heading in soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
         level = int(heading.name[1])
         text = heading.get_text()
-        # 生成锚点ID
-        heading_id = re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
+        
+        # 生成锚点ID：保留中文和英文字母，其他字符替换为横线
+        heading_id = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9]+', '-', text)
+        heading_id = re.sub(r'-+', '-', heading_id).strip('-')  # 合并多个横线并移除首尾横线
+        
+        # 确保ID唯一性
+        if heading_id in [item['id'] for item in outline]:
+            counter = 1
+            while f"{heading_id}-{counter}" in [item['id'] for item in outline]:
+                counter += 1
+            heading_id = f"{heading_id}-{counter}"
+        
+        # 创建锚点元素
+        anchor = soup.new_tag('a', href=f"#{heading_id}")
+        anchor['class'] = 'header-anchor'
+        anchor['id'] = heading_id
         heading['id'] = heading_id
+        
+        # 将原有内容包装在锚点中
+        heading.wrap(anchor)
+        
         outline.append({
             'level': level,
             'text': text,
             'id': heading_id
         })
     
-    return html_content, outline
+    return str(soup), outline
 
 # 添加一个辅助函数来处理路径
 def normalize_path(path):

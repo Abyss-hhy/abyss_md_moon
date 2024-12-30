@@ -573,6 +573,7 @@ button[onclick*="download"]:hover {
 .content-container {
   flex: 1;
   min-width: 0;
+  scroll-padding-top: 80px;
 }
 
 /* 大纲容器 */
@@ -610,19 +611,17 @@ button[onclick*="download"]:hover {
 
 /* 大纲链接 */
 .outline-link {
-  color: var(--gray-600);
-  text-decoration: none;
-  font-size: 0.9rem;
-  line-height: 1.4;
   display: block;
   padding: 4px 8px;
+  color: var(--gray-600);
+  text-decoration: none;
   border-radius: 4px;
   transition: all 0.2s;
 }
 
 .outline-link:hover {
   color: var(--primary-600);
-  background: var(--primary-50);
+  background-color: var(--gray-100);
 }
 
 /* 大纲层级缩进 */
@@ -1519,4 +1518,35 @@ button[onclick*="batchDownload"]:hover {
 
 .image-container::-webkit-scrollbar-thumb:hover {
     background: var(--gray-400);
+}
+
+/* 标题锚点样式 */
+.header-anchor {
+  color: inherit;
+  text-decoration: none;
+  scroll-margin-top: 80px;  /* 确保跳转时标题不会被顶部导航栏遮挡 */
+}
+
+.header-anchor:hover {
+  color: var(--primary-600);
+}
+
+/* 大纲链接样式 */
+.outline-link {
+  display: block;
+  padding: 4px 8px;
+  color: var(--gray-600);
+  text-decoration: none;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.outline-link:hover {
+  color: var(--primary-600);
+  background-color: var(--gray-100);
+}
+
+/* 确保内容区域有足够的滚动空间 */
+.content-container {
+  scroll-padding-top: 80px;
 }
