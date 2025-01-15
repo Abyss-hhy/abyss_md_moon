@@ -301,7 +301,8 @@ def save_messages(messages):
 @app.route('/messages', methods=['GET'])
 def get_messages():
     messages = load_messages()
-    return jsonify(messages)
+    # 移除 IP 地址信息再返回
+    return jsonify([{k: v for k, v in msg.items() if k != 'ip_address'} for msg in messages])
 
 @app.route('/messages', methods=['POST'])
 def add_message():
@@ -318,11 +319,17 @@ def add_message():
     # 规范化换行符
     content = content.replace('\r\n', '\n').replace('\r', '\n')
     
+    # 获取用户IP地址
+    ip_address = request.remote_addr
+    if request.headers.get('X-Forwarded-For'):
+        ip_address = request.headers.get('X-Forwarded-For').split(',')[0]
+    
     messages = load_messages()
     messages.append({
         'content': content,
         'username': username or '匿名用户',
-        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'ip_address': ip_address  # 添加IP地址字段
     })
     
     # 只保留最近的50条留言
