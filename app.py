@@ -313,7 +313,7 @@ def add_message():
     
     # 验证用户名不能包含"abyss"（不区分大小写）
     if username and ('abyss' in username.lower() or 'hhy' in username.lower()):
-        return jsonify({'status': 'error', 'message': '用户名不能包含我的名字，谢谢你！'})
+        return jsonify({'status': 'error', 'message': '说了别用我名字了哥'})
     
     # 规范化换行符
     content = content.replace('\r\n', '\n').replace('\r', '\n')
