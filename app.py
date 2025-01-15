@@ -13,12 +13,53 @@ from markdown.extensions import codehilite, footnotes, meta, toc
 from markdown.extensions import nl2br, sane_lists, smarty, wikilinks
 from urllib.parse import unquote, quote
 from bs4 import BeautifulSoup
+import pygments
+from pygments import highlight
+from pygments.lexers import get_lexer_for_filename, TextLexer
+from pygments.formatters import HtmlFormatter
 
 app = Flask(__name__)
 app.secret_key = 'some_secret_key'
 
 # 全局版本号
-VERSION = "1.1.11"
+VERSION = "1.1.12"
+
+# 定义支持预览的文件类型
+PREVIEWABLE_EXTENSIONS = {
+    # 文本文件
+    '.txt': 'text',
+    '.log': 'text',
+    '.ini': 'text',
+    '.conf': 'text',
+    # Markdown文件
+    '.md': 'markdown',
+    # 代码文件
+    '.py': 'code',
+    '.js': 'code',
+    '.html': 'code',
+    '.css': 'code',
+    '.java': 'code',
+    '.cpp': 'code',
+    '.c': 'code',
+    '.h': 'code',
+    '.hpp': 'code',
+    '.json': 'code',
+    '.xml': 'code',
+    '.yaml': 'code',
+    '.yml': 'code',
+    '.sh': 'code',
+    '.bat': 'code',
+    '.ps1': 'code',
+    '.sql': 'code',
+    '.r': 'code',
+    '.php': 'code',
+    '.go': 'code',
+    '.rb': 'code',
+    '.rust': 'code',
+    '.ts': 'code',
+    '.jsx': 'code',
+    '.tsx': 'code',
+}
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'upload_folder')
@@ -312,32 +353,38 @@ def index():
             selected_file_path = os.path.normpath(os.path.join(browse_path, file_path))
             selected_file_owner = selected_file_info['owner']
             selected_file_original_name = selected_file_info['original_name']
+            file_extension = selected_file_info['extension']
 
-            if selected_file_owner != 'shared':
-                if auth_user == selected_file_owner:
+            # 检查文件是否支持预览
+            if file_extension.lower() in PREVIEWABLE_EXTENSIONS:
+                if selected_file_owner != 'shared':
+                    if auth_user == selected_file_owner:
+                        if os.path.exists(selected_file_path):
+                            try:
+                                with open(selected_file_path, 'r', encoding='utf-8') as f:
+                                    selected_file_content = f.read()
+                                selected_file_html, outline = render_file_content(selected_file_content, file_extension)
+                            except Exception as e:
+                                flash(f"读取文件失败: {str(e)}")
+                                selected_file_content = ""
+                                selected_file_html = ""
+                                outline = []
+                    else:
+                        need_auth_to_view = True
+                else:
                     if os.path.exists(selected_file_path):
                         try:
                             with open(selected_file_path, 'r', encoding='utf-8') as f:
                                 selected_file_content = f.read()
-                            selected_file_html, outline = render_markdown(selected_file_content)
+                            selected_file_html, outline = render_file_content(selected_file_content, file_extension)
                         except Exception as e:
                             flash(f"读取文件失败: {str(e)}")
                             selected_file_content = ""
                             selected_file_html = ""
                             outline = []
-                else:
-                    need_auth_to_view = True
             else:
-                if os.path.exists(selected_file_path):
-                    try:
-                        with open(selected_file_path, 'r', encoding='utf-8') as f:
-                            selected_file_content = f.read()
-                        selected_file_html, outline = render_markdown(selected_file_content)
-                    except Exception as e:
-                        flash(f"读取文件失败: {str(e)}")
-                        selected_file_content = ""
-                        selected_file_html = ""
-                        outline = []
+                selected_file_html = "<p>此文件类型不支持预览</p>"
+                outline = []
 
     all_dirs = list_all_dirs()
 
@@ -732,7 +779,8 @@ def get_folder_contents(folder_path):
     
     for root, dirs, files in os.walk(folder_full_path):
         for file in files:
-            if file.lower().endswith('.md'):
+            file_extension = os.path.splitext(file)[1].lower()
+            if file_extension in PREVIEWABLE_EXTENSIONS:
                 file_meta = metadata.get(file, {})
                 owner = file_meta.get('owner', 'shared')
                 if owner != 'shared':
@@ -748,6 +796,35 @@ def get_folder_contents(folder_path):
         'contents': contents,
         'personal_files': personal_files
     })
+
+def render_file_content(content, file_extension):
+    """根据文件类型渲染内容"""
+    file_type = PREVIEWABLE_EXTENSIONS.get(file_extension.lower())
+    
+    if not file_type:
+        return None, None  # 不支持的文件类型
+        
+    if file_type == 'markdown':
+        return render_markdown(content)
+    elif file_type in ['text', 'code']:
+        try:
+            if file_type == 'code':
+                # 使用Pygments进行代码高亮
+                lexer = get_lexer_for_filename(f"file{file_extension}")
+            else:
+                # 纯文本使用普通文本lexer
+                lexer = TextLexer()
+            
+            formatter = HtmlFormatter(linenos=True, cssclass="highlight")
+            highlighted_content = highlight(content, lexer, formatter)
+            
+            # 返回高亮后的HTML和空大纲（因为非markdown文件没有大纲）
+            return highlighted_content, []
+        except Exception as e:
+            # 如果高亮失败，作为普通文本显示
+            return f"<pre>{content}</pre>", []
+    
+    return None, None
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

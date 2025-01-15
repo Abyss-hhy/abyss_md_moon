@@ -683,7 +683,7 @@
                                     预览
                                 </button>
                             {% endif %}
-                            {% if f.name.lower().endswith('.md') %}
+                            {% if f.extension.lower() in ['.md', '.txt', '.log', '.ini', '.conf', '.py', '.js', '.html', '.css', '.java', '.cpp', '.c', '.h', '.hpp', '.json', '.xml', '.yaml', '.yml', '.sh', '.bat', '.ps1', '.sql', '.r', '.php', '.go', '.rb', '.rust', '.ts', '.jsx', '.tsx'] %}
                                 {% if f.owner == 'shared' %}
                                     <a href="{{ url_for('index', dir=f.path, selected=f.name) }}" class="btn open-button">打开</a>
                                 {% else %}
