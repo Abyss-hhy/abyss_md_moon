@@ -6,6 +6,7 @@ import shutil
 import markdown
 import zipfile
 import io
+import requests
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash, jsonify
 from markdown.extensions import fenced_code, tables, attr_list, def_list
@@ -251,9 +252,38 @@ def search_all_files(search_keyword):
     
     return results
 
+# 定义友情链接
+FRIEND_LINKS = [
+    {
+        'url': 'http://10.75.48.202:5000/',
+        'name': 'Timothy的点云生成平台'
+    },
+    {
+        'url': 'http://10.75.49.47:5001/',
+        'name': '材料费报销表生成器'
+    },
+    {
+        'url': 'http://10.75.49.46:7006/',
+        'name': '论文修改平台'
+    }
+]
+
+@app.route('/check_website_status')
+def check_website_status():
+    url = request.args.get('url')
+    if not url:
+        return jsonify({'status': 'error', 'message': 'URL is required'})
+    
+    try:
+        # 设置较短的超时时间
+        response = requests.get(url, timeout=3)
+        return jsonify({'status': 'online' if response.status_code == 200 else 'offline'})
+    except:
+        return jsonify({'status': 'offline'})
+
 @app.route('/')
 def welcome():
-    return render_template('welcome.html', VERSION=VERSION)
+    return render_template('welcome.html', VERSION=VERSION, FRIEND_LINKS=FRIEND_LINKS)
 
 @app.route('/home')
 def index():
