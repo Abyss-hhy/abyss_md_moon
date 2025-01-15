@@ -23,7 +23,7 @@ app = Flask(__name__)
 app.secret_key = 'some_secret_key'
 
 # 全局版本号
-VERSION = "1.1.12"
+VERSION = "1.1.13"
 
 # 定义支持预览的文件类型
 PREVIEWABLE_EXTENSIONS = {
@@ -65,6 +65,9 @@ PREVIEWABLE_EXTENSIONS = {
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'upload_folder')
 METADATA_FILE = os.path.join(BASE_DIR, 'metadata.json')
+
+# 留言数据文件路径
+MESSAGES_FILE = os.path.join(BASE_DIR, 'messages.json')
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -253,7 +256,7 @@ def search_all_files(search_keyword):
     return results
 
 # 定义友情链接
-FRIEND_LINKS = [
+FRIEND_LINKS = sorted([
     {
         'url': 'http://10.75.48.202:5000/',
         'name': 'Timothy的点云生成平台'
@@ -265,8 +268,12 @@ FRIEND_LINKS = [
     {
         'url': 'http://10.75.49.46:7006/',
         'name': '论文修改平台'
+    },
+    {
+        'url': 'http://10.75.49.46:5002/',
+        'name': 'Timothy的工作流'
     }
-]
+], key=lambda x: x['name'])
 
 @app.route('/check_website_status')
 def check_website_status():
@@ -275,15 +282,60 @@ def check_website_status():
         return jsonify({'status': 'error', 'message': 'URL is required'})
     
     try:
-        # 设置较短的超时时间
-        response = requests.get(url, timeout=3)
+        # 设置更短的超时时间
+        response = requests.get(url, timeout=1)
         return jsonify({'status': 'online' if response.status_code == 200 else 'offline'})
     except:
         return jsonify({'status': 'offline'})
 
+def load_messages():
+    if os.path.exists(MESSAGES_FILE):
+        with open(MESSAGES_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return []
+
+def save_messages(messages):
+    with open(MESSAGES_FILE, 'w', encoding='utf-8') as f:
+        json.dump(messages, f, ensure_ascii=False, indent=4)
+
+@app.route('/messages', methods=['GET'])
+def get_messages():
+    messages = load_messages()
+    return jsonify(messages)
+
+@app.route('/messages', methods=['POST'])
+def add_message():
+    content = request.form.get('content', '').strip()
+    username = request.form.get('username', '').strip()
+    
+    if not content:
+        return jsonify({'status': 'error', 'message': '留言内容不能为空'})
+    
+    # 验证用户名不能包含"abyss"（不区分大小写）
+    if username and ('abyss' in username.lower() or 'hhy' in username.lower()):
+        return jsonify({'status': 'error', 'message': '用户名不能包含我的名字，谢谢你！'})
+    
+    # 规范化换行符
+    content = content.replace('\r\n', '\n').replace('\r', '\n')
+    
+    messages = load_messages()
+    messages.append({
+        'content': content,
+        'username': username or '匿名用户',
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    })
+    
+    # 只保留最近的50条留言
+    if len(messages) > 50:
+        messages = messages[-50:]
+    
+    save_messages(messages)
+    return jsonify({'status': 'success'})
+
 @app.route('/')
 def welcome():
-    return render_template('welcome.html', VERSION=VERSION, FRIEND_LINKS=FRIEND_LINKS)
+    messages = load_messages()
+    return render_template('welcome.html', VERSION=VERSION, FRIEND_LINKS=FRIEND_LINKS, MESSAGES=messages)
 
 @app.route('/home')
 def index():
