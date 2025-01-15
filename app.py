@@ -267,7 +267,7 @@ FRIEND_LINKS = sorted([
     },
     {
         'url': 'http://10.75.49.46:7006/',
-        'name': '论文修改平台'
+        'name': 'Timothy的论文修改平台'
     },
     {
         'url': 'http://10.75.49.46:5002/',
