@@ -284,7 +284,7 @@
     "拷贝.md": {
         "original_name": "拷贝.md",
         "upload_time": "1735508941",
-        "edit_time": "1736924302",
+        "edit_time": "1736967750",
         "owner": "shared"
     },
     "nerfstudio.md": {
@@ -453,6 +453,18 @@
         "original_name": "app.py",
         "upload_time": "1736922480",
         "edit_time": "1736923605",
+        "owner": "shared"
+    },
+    "epoch_150.pth": {
+        "original_name": "epoch_150.pth",
+        "upload_time": "1736964582",
+        "edit_time": "1736964582",
+        "owner": "shared"
+    },
+    "name_mapping_new_to_old.json": {
+        "original_name": "name_mapping_new_to_old.json",
+        "upload_time": "1736969146",
+        "edit_time": "1736969146",
         "owner": "shared"
     }
 }

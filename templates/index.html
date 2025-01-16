@@ -670,6 +670,21 @@
                             {% elif f.extension in ['.doc', '.docx', '.pdf'] %}📄
                             {% elif f.extension in ['.xls', '.xlsx', '.csv'] %}📊
                             {% elif f.extension in ['.zip', '.rar', '.7z'] %}📦
+                            {% elif f.extension in ['.js'] %}🟨
+                            {% elif f.extension in ['.ts'] %}🔷
+                            {% elif f.extension in ['.py'] %}🐍
+                            {% elif f.extension in ['.html'] %}🌐
+                            {% elif f.extension in ['.css'] %}🎨
+                            {% elif f.extension in ['.php'] %}🐘
+                            {% elif f.extension in ['.java'] %}☕
+                            {% elif f.extension in ['.go'] %}🐹
+                            {% elif f.extension in ['.rb'] %}💎
+                            {% elif f.extension in ['.rs'] %}🦀
+                            {% elif f.extension in ['.c', '.cpp'] %}💻
+                            {% elif f.extension in ['.sh'] %}🔧
+                            {% elif f.extension == '.txt' %}📃
+                            {% elif f.extension == '.json' %}🔣
+                            {% elif f.extension == '.pth' %}🛤️
                             {% else %}📎
                             {% endif %}
                         </div>
